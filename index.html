@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Lakdive Sakmana — a stroll through Sri Lanka</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+<style>
+  :root{--ink:#4a3b35;--ink-soft:#7b6a61;--card:rgba(255,250,244,.86);--accent:#b9664c;--line:rgba(122,96,82,.18)}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:linear-gradient(#cfe6ee,#f3ead8);font-family:'Nunito Sans',system-ui,sans-serif;color:var(--ink)}
+  canvas#map{position:fixed;inset:0;width:100%;height:100%;display:block}
+  .card{background:var(--card);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:18px;box-shadow:0 10px 30px rgba(74,59,53,.12)}
+  #home{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:28px 16px 22px;pointer-events:none;transition:opacity .6s}
+  #home.hide{opacity:0}
+  #home .head{text-align:center;pointer-events:none}
+  #home h1{font-family:Fraunces,serif;font-weight:700;font-size:clamp(38px,6.4vw,76px);margin:0;letter-spacing:.02em;color:#5a4038;text-shadow:0 2px 0 rgba(255,255,255,.6)}
+  #home .sub{font-size:15px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-soft);margin-top:2px}
+  #chapters{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;pointer-events:auto;max-width:980px}
+  .ch{width:min(176px,calc((100vw - 90px)/5));padding:12px 14px 13px;cursor:pointer;text-align:left;border:0;font:inherit;color:inherit;transition:transform .2s, box-shadow .2s}
+  .ch:hover:not(.locked){transform:translateY(-3px);box-shadow:0 14px 34px rgba(74,59,53,.18)}
+  .ch .n{font-family:Fraunces,serif;font-size:13px;letter-spacing:.14em;color:var(--accent);font-weight:700}
+  .ch .p{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft);margin-top:2px}
+  .ch .t{font-family:Fraunces,serif;font-size:19px;font-weight:600;line-height:1.15;margin-top:4px}
+  .ch .s{font-size:12px;margin-top:7px;font-weight:700;color:var(--ink-soft)}
+  .ch.done .s{color:#2f8a4a}.ch.next{outline:2px solid var(--accent);outline-offset:-2px}
+  .ch.locked{opacity:.5;cursor:not-allowed;filter:grayscale(.6)}
+  #hint{font-size:13px;color:var(--ink-soft);margin-top:10px;text-align:center;pointer-events:auto}
+  #hint button{background:none;border:0;color:var(--accent);font:inherit;font-weight:700;cursor:pointer;text-decoration:underline}
+  #trip{position:fixed;left:16px;top:16px;padding:12px 16px;max-width:360px;opacity:0;transition:opacity .5s;pointer-events:none}
+  #trip.on{opacity:1}
+  #trip .k{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft)}
+  #trip .t{font-family:Fraunces,serif;font-size:24px;font-weight:700;margin:2px 0}
+  #trip .r{font-size:14px}
+  #skip{position:fixed;right:16px;bottom:16px;padding:10px 16px;border:0;font:inherit;font-weight:700;color:var(--ink);cursor:pointer;display:none}
+  #lvl{position:fixed;inset:0;width:100%;height:100%;border:0;background:#f3ead8;opacity:0;pointer-events:none;transition:opacity .7s}
+  #lvl.on{opacity:1;pointer-events:auto}
+  #fade{position:fixed;inset:0;background:#f6efe2;opacity:0;pointer-events:none;transition:opacity .7s}
+  #fade.on{opacity:1}
+  #end{position:fixed;inset:0;display:none;align-items:center;justify-content:center}
+  #end .panel{padding:28px 30px;text-align:center;max-width:460px}
+  #end h2{font-family:Fraunces,serif;font-size:40px;margin:4px 0}
+  .cta{background:var(--accent);color:#fff;border:0;border-radius:999px;padding:12px 24px;font:700 16px 'Nunito Sans',sans-serif;cursor:pointer;margin-top:12px}
+  @media (max-width:900px){.ch{padding:9px 10px}.ch .t{font-size:15px}.ch .p{font-size:10px}.ch .s{font-size:11px}}@media (max-width:640px){.ch{width:46vw}#trip{max-width:72vw}}
+</style>
+</head>
+<body>
+<canvas id="map"></canvas>
+<div id="home">
+  <div class="head"><h1>Lakdive Sakmana</h1><div class="sub">A stroll through Sri Lanka</div></div>
+  <div><div id="chapters"></div><div id="hint"></div></div>
+</div>
+<div id="trip" class="card"><div class="k" id="tripK"></div><div class="t" id="tripT"></div><div class="r" id="tripR"></div></div>
+<button id="skip" class="card">Skip ›</button>
+<iframe id="lvl" title="Chapter" allow="autoplay"></iframe>
+<div id="fade"></div>
+<div id="end"><div class="panel card"><div class="sub" style="letter-spacing:.2em;font-size:12px;text-transform:uppercase;color:var(--ink-soft)">Journey complete</div><h2>Every lamp is lit</h2>
+  <p>From the Stupa House to the Lion Rock: five chapters, five ways of thinking. Thank you for travelling.</p><button class="cta" id="endBack">Back to the map</button></div></div>
+
+<script type="module">
+import * as THREE from 'three';
+
+/* ---------------- the chapters, in play order ---------------- */
+const CH = [
+  { id: 'polo', n: 'I', place: 'Polonnaruwa', title: 'The Stupa House', at: [7.94, 81.0], by: 'train', from: 'Colombo', via: [[7.49, 80.36], [7.86, 80.65], [8.04, 80.75]] },
+  { id: 'hiri', n: 'II', place: 'Hiriketiya', title: 'The Horseshoe Bay', at: [5.965, 80.71], by: 'tuktuk', via: [[7.32, 81.0], [6.74, 81.1], [6.12, 81.12], [6.02, 80.8]] },
+  { id: 'yala', n: 'III', place: 'Yala', title: 'The Lost Calf', at: [6.37, 81.5], by: 'jeep', via: [[6.02, 80.8], [6.12, 81.12], [6.28, 81.29]] },
+  { id: 'hill', n: 'IV', place: 'Hill Country', title: 'The First Flush', at: [6.87, 81.05], by: 'bus', via: [[6.28, 81.29], [6.74, 81.1]] },
+  { id: 'sigi', n: 'V', place: 'Sigiriya', title: 'The Lion Rock', at: [7.96, 80.76], by: 'balloon', via: [[7.3, 80.85]] },
+];
+const COLOMBO = [6.93, 79.86];
+const BY = { train: 'by the blue intercity train', tuktuk: 'by tuk-tuk, down to the south coast', jeep: 'by safari jeep, east along the coast', bus: 'by the red CTB bus, up into the hills', balloon: 'by hot-air balloon, over the central hills' };
+
+/* ---------------- progress, kept in this browser ---------------- */
+const KEY = 'pahana.progress.v1';
+function load() { try { return JSON.parse(localStorage.getItem(KEY)) || { done: [] }; } catch { return { done: [] }; } }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(prog)); } catch {} }
+const prog = load();
+const isDone = (i) => prog.done.includes(CH[i].id);
+const unlocked = (i) => i === 0 || isDone(i - 1);
+let here = prog.here ?? -1; // -1 = Colombo; otherwise the index of the chapter she last visited
+
+/* ---------------- renderer, camera, light ---------------- */
+const canvas = document.getElementById('map');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene(); scene.fog = new THREE.Fog(0xe9e4d6, 70, 140);
+const camera = new THREE.PerspectiveCamera(32, 1, 0.5, 400);
+scene.add(new THREE.HemisphereLight(0xfff3e8, 0x9ab0a8, 1.6));
+const sun = new THREE.DirectionalLight(0xfff0dc, 2.1); sun.position.set(-18, 40, 20); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -30, right: 30, top: 30, bottom: -30, near: 1, far: 120 }); scene.add(sun);
+function resize() { renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
+addEventListener('resize', resize); resize();
+const mat = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.9, flatShading: true, ...o });
+const hash = (x, y, z = 0) => { const s = Math.sin(x * 127.1 + y * 311.7 + z * 74.7) * 43758.5453; return s - Math.floor(s); };
+
+/* ---------------- the island ---------------- */
+const K = 9; // units per degree
+const P = ([lat, lon], y = 0) => new THREE.Vector3((lon - 80.7) * K, y, -(lat - 7.85) * K);
+const COAST = [[9.83, 80.02], [9.8, 80.22], [9.66, 80.38], [9.48, 80.45], [9.3, 80.7], [9.05, 80.92], [8.78, 81.12], [8.55, 81.24], [8.3, 81.38], [8.0, 81.5], [7.72, 81.66], [7.45, 81.8], [7.15, 81.87], [6.85, 81.83], [6.58, 81.74], [6.38, 81.62], [6.22, 81.45], [6.12, 81.25], [6.04, 81.02], [5.97, 80.8], [5.92, 80.58], [5.97, 80.38], [6.1, 80.17], [6.32, 80.05], [6.6, 79.96], [6.9, 79.86], [7.2, 79.82], [7.55, 79.8], [7.9, 79.79], [8.2, 79.8], [8.5, 79.88], [8.8, 79.93], [9.0, 79.92], [9.15, 79.98], [9.38, 80.08], [9.52, 79.98], [9.68, 79.93]];
+const shape = new THREE.Shape(COAST.map((c) => { const v = P(c); return new THREE.Vector2(v.x, -v.z); }));
+const land = new THREE.Mesh(new THREE.ExtrudeGeometry(shape, { depth: 1.2, bevelEnabled: true, bevelThickness: 0.4, bevelSize: 0.5, bevelSegments: 2 }), [mat(0x8fb070), mat(0xe8d4a8)]);
+land.rotation.x = -Math.PI / 2; land.position.y = -1.6; land.receiveShadow = true; scene.add(land);
+const beach = new THREE.Mesh(new THREE.ExtrudeGeometry(shape, { depth: 0.6, bevelEnabled: true, bevelThickness: 0.2, bevelSize: 1.0, bevelSegments: 1 }), mat(0xeedcb0));
+beach.rotation.x = -Math.PI / 2; beach.position.y = -1.25; scene.add(beach);
+const sea = new THREE.Mesh(new THREE.CircleGeometry(90, 64), new THREE.MeshStandardMaterial({ color: 0x8cc6cc, roughness: 0.35, metalness: 0.05 })); sea.rotation.x = -Math.PI / 2; sea.position.y = -0.9; sea.receiveShadow = true; scene.add(sea);
+// the central highlands, the dry-zone plains and the rivers, kept simple and low-poly
+const inLand = (lat, lon) => { const v = P([lat, lon]); let c = false; const pts = COAST.map((q) => P(q)); for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { const a = pts[i], b = pts[j]; if ((a.z > v.z) !== (b.z > v.z) && v.x < (b.x - a.x) * (v.z - a.z) / (b.z - a.z) + a.x) c = !c; } return c; };
+for (let i = 0; i < 46; i++) { const lat = 6.55 + hash(i, 1) * 1.0, lon = 80.45 + hash(i, 2) * 0.75; const d = Math.hypot(lat - 7.0, (lon - 80.78) * 1.2); if (d > 0.55) continue;
+  const h = (0.6 - d) * 5 + hash(i, 3) * 1.2; const m = new THREE.Mesh(new THREE.ConeGeometry(0.9 + hash(i, 4) * 0.8, h, 5), mat(d < 0.3 ? 0x6a9a58 : 0x7fa866)); m.position.copy(P([lat, lon], 0.2 + h / 2)); m.rotation.y = hash(i, 5) * 3; m.castShadow = true; scene.add(m); }
+for (let i = 0; i < 160; i++) { const lat = 6.0 + hash(i, 7) * 3.8, lon = 79.85 + hash(i, 8) * 1.95; if (!inLand(lat, lon)) continue; const near = CH.some((c) => Math.hypot(c.at[0] - lat, c.at[1] - lon) < 0.12) || Math.hypot(lat - 7.0, lon - 80.78) < 0.5; if (near) continue;
+  const t = new THREE.Mesh(new THREE.IcosahedronGeometry(0.28 + hash(i, 9) * 0.22, 0), mat(i % 3 ? 0x5f8f4a : 0x76a35a)); t.position.copy(P([lat, lon], 0.45)); t.castShadow = true; scene.add(t); }
+// a few ancient tanks (wewa) in the dry zone
+for (const [lat, lon, r] of [[8.33, 80.4, 0.6], [7.92, 81.02, 0.5], [7.35, 81.6, 0.45]]) { const w = new THREE.Mesh(new THREE.CircleGeometry(r, 14), new THREE.MeshStandardMaterial({ color: 0x7fbfc6, roughness: 0.3 })); w.rotation.x = -Math.PI / 2; w.position.copy(P([lat, lon], 0.23)); w.position.x += 0.6; scene.add(w); }
+
+/* ---------------- landmarks at each place ---------------- */
+function landmark(kind) { const g = new THREE.Group();
+  if (kind === 'Colombo') { for (let i = 0; i < 6; i++) { const h = 0.8 + hash(i, 1) * 1.6; const b = new THREE.Mesh(new THREE.BoxGeometry(0.42, h, 0.42), mat(i % 2 ? 0xe8e0d0 : 0xc8d4dc)); b.position.set((i % 3 - 1) * 0.55, h / 2, (Math.floor(i / 3) - 0.5) * 0.6); b.castShadow = true; g.add(b); }
+    const lotus = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.12, 3.2, 6), mat(0xd08ab0)); lotus.position.set(0.9, 1.6, 0.2); g.add(lotus); const bud = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6), mat(0xe8a0c8)); bud.position.set(0.9, 3.3, 0.2); g.add(bud); }
+  if (kind === 'polo') { const base = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.1, 0.3, 16), mat(0xd8cdb8)); base.position.y = 0.15; g.add(base); const dome = new THREE.Mesh(new THREE.SphereGeometry(0.7, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), mat(0xf4efe4)); dome.position.y = 0.3; g.add(dome);
+    const sp = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.7, 8), mat(0xd8b44a)); sp.position.y = 1.3; g.add(sp); }
+  if (kind === 'hiri') { for (let i = 0; i < 4; i++) { const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.06, 1.3, 5), mat(0x8a6a4a)); tr.position.set(-0.6 + i * 0.4, 0.65, 0.2); tr.rotation.z = (i % 2 ? 0.2 : -0.15); g.add(tr); const c = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.25, 6), mat(0x5a9a4a)); c.position.set(-0.6 + i * 0.4 + (i % 2 ? -0.13 : 0.1), 1.32, 0.2); g.add(c); }
+    const board = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.9, 0.04), mat(0xe8734a)); board.position.set(0.8, 0.45, -0.3); g.add(board); }
+  if (kind === 'yala') { const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.7, 0), mat(0xc4ab98)); rock.scale.set(1.3, 0.8, 1); rock.position.y = 0.4; g.add(rock);
+    const el = new THREE.Group(); const b = new THREE.Mesh(new THREE.SphereGeometry(0.32, 10, 8), mat(0x8e8680)); b.scale.set(1, 0.85, 1.3); b.position.y = 0.45; el.add(b); const h = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 6), mat(0x8e8680)); h.position.set(0, 0.55, 0.42); el.add(h);
+    for (const [x, z] of [[-0.15, 0.2], [0.15, 0.2], [-0.15, -0.2], [0.15, -0.2]]) { const l = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.3, 6), mat(0x8e8680)); l.position.set(x, 0.15, z); el.add(l); } el.position.set(1.1, 0, 0.3); el.rotation.y = -0.6; g.add(el); }
+  if (kind === 'hill') { for (let r = 0; r < 4; r++) { const t = new THREE.Mesh(new THREE.CylinderGeometry(1.25 - r * 0.25, 1.35 - r * 0.25, 0.28, 12), mat(r % 2 ? 0x4f8a3e : 0x6aa04e)); t.position.y = 0.14 + r * 0.28; g.add(t); }
+    const br = new THREE.Group(); for (let i = 0; i < 4; i++) { const a = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.06, 4, 10, Math.PI), mat(0xd8cdb8)); a.position.set(-0.6 + i * 0.4, 0.2, 0); br.add(a); } const deck = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.08, 0.16), mat(0xd8cdb8)); deck.position.y = 0.42; br.add(deck); br.position.set(1.2, 0, 0.8); g.add(br); }
+  if (kind === 'sigi') { const rock = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.9, 1.8, 10), mat(0xc07a48)); rock.position.y = 0.9; g.add(rock); const top = new THREE.Mesh(new THREE.CylinderGeometry(0.76, 0.76, 0.12, 10), mat(0x7aa060)); top.position.y = 1.85; g.add(top);
+    for (let i = 0; i < 5; i++) { const t = new THREE.Mesh(new THREE.IcosahedronGeometry(0.4, 0), mat(0x5f8f4a)); t.position.set(Math.cos(i * 1.3) * 1.1, 0.3, Math.sin(i * 1.3) * 1.1); g.add(t); } }
+  g.traverse((o) => { if (o.isMesh) o.castShadow = true; }); return g; }
+const places = [{ name: 'Colombo', at: COLOMBO }, ...CH.map((c) => ({ name: c.place, at: c.at, id: c.id }))];
+const pins = places.map((pl) => { const g = landmark(pl.id || 'Colombo'); g.position.copy(P(pl.at, 0.25)); scene.add(g);
+  const tex = (() => { const c = document.createElement('canvas'); c.width = 320; c.height = 84; const x = c.getContext('2d'); x.fillStyle = 'rgba(255,250,244,.92)'; x.beginPath(); x.roundRect(4, 4, 312, 76, 38); x.fill(); x.fillStyle = '#4a3b35'; x.font = '700 38px Nunito Sans, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(pl.name, 160, 45); return new THREE.CanvasTexture(c); })();
+  const lab = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true })); lab.scale.set(3.4, 0.9, 1); lab.position.copy(P(pl.at, 3.4)).add(new THREE.Vector3(...({ Sigiriya: [-2.4, 0, -0.4], Polonnaruwa: [2.2, 0.6, 0.2] }[pl.name] || [0, 0, 0]))); scene.add(lab);
+  const ring = new THREE.Mesh(new THREE.RingGeometry(1.2, 1.45, 32), new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0, depthWrite: false })); ring.rotation.x = -Math.PI / 2; ring.position.copy(P(pl.at, 0.32)); scene.add(ring);
+  return { g, lab, ring }; });
+// soft clouds drifting over the sea
+const clouds = []; for (let i = 0; i < 12; i++) { const c = new THREE.Group(); for (let k = 0; k < 4; k++) { const s = new THREE.Mesh(new THREE.SphereGeometry(1 + hash(i, k) * 0.8, 8, 6), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, roughness: 1 })); s.position.set(k * 1.2 - 1.8, hash(k, i) * 0.4, hash(i, k, 2) * 0.8); s.scale.y = 0.55; c.add(s); }
+  { const a = hash(i, 11) * Math.PI * 2, r = 30 + hash(i, 13) * 14; c.position.set(Math.cos(a) * r, 9 + hash(i, 12) * 5, Math.sin(a) * r); } c.userData.sp = 0.4 + hash(i, 14) * 0.5; scene.add(c); clouds.push(c); }
+
+/* ---------------- the vehicles ---------------- */
+function vehicle(kind) { const g = new THREE.Group(); const box = (w, h, d, c, x = 0, y = 0, z = 0, p = g) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(c)); m.position.set(x, y, z); m.castShadow = true; p.add(m); return m; };
+  const wheels = (pts, r = 0.14) => pts.forEach(([x, z]) => { const w = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.1, 10), mat(0x2a2a2a)); w.rotation.z = Math.PI / 2; w.position.set(x, r, z); g.add(w); });
+  if (kind === 'train') { g.userData.cars = []; for (let i = 0; i < 3; i++) { const car = new THREE.Group(); box(0.6, 0.5, 1.3, i === 0 ? 0x2f5fa8 : 0x3a6ab8, 0, 0.42, 0, car); box(0.62, 0.12, 1.32, 0xc8423b, 0, 0.6, 0, car); box(0.64, 0.06, 1.34, 0x2a2a2a, 0, 0.7, 0, car); for (let k = 0; k < 3; k++) box(0.62, 0.14, 0.24, 0xe8f0f4, 0, 0.5, -0.4 + k * 0.4, car);
+    if (i === 0) box(0.5, 0.2, 0.3, 0xffd27a, 0, 0.35, 0.66, car); g.add(car); g.userData.cars.push(car); } }
+  if (kind === 'tuktuk') { box(0.7, 0.45, 1.0, 0xa8322a, 0, 0.42, 0); box(0.74, 0.08, 1.05, 0x2a2a2a, 0, 0.92, -0.05); box(0.68, 0.32, 0.06, 0xd8eef4, 0, 0.7, 0.45); box(0.12, 0.42, 0.95, 0x2a2a2a, 0.36, 0.7, -0.05); box(0.12, 0.42, 0.95, 0x2a2a2a, -0.36, 0.7, -0.05); wheels([[0, 0.48], [-0.32, -0.38], [0.32, -0.38]], 0.13); }
+  if (kind === 'jeep') { box(0.8, 0.4, 1.4, 0x5a6a3a, 0, 0.42, 0); box(0.8, 0.06, 0.9, 0xd8c8a0, 0, 1.0, -0.25); for (const [x, z] of [[-0.37, 0.15], [0.37, 0.15], [-0.37, -0.65], [0.37, -0.65]]) box(0.05, 0.42, 0.05, 0x2a2a2a, x, 0.8, z); box(0.76, 0.25, 0.06, 0xd8eef4, 0, 0.72, 0.28); wheels([[-0.4, 0.45], [0.4, 0.45], [-0.4, -0.45], [0.4, -0.45]], 0.17); }
+  if (kind === 'bus') { box(0.75, 0.72, 2.0, 0xc8302a, 0, 0.55, 0); box(0.77, 0.12, 2.02, 0xf0c840, 0, 0.42, 0); for (let k = 0; k < 5; k++) box(0.78, 0.22, 0.28, 0xe8f0f4, 0, 0.72, -0.75 + k * 0.36); box(0.7, 0.3, 0.05, 0xe8f0f4, 0, 0.72, 1.0); wheels([[-0.38, 0.65], [0.38, 0.65], [-0.38, -0.65], [0.38, -0.65]], 0.16); }
+  if (kind === 'balloon') { const env = new THREE.Mesh(new THREE.SphereGeometry(0.9, 12, 10), new THREE.MeshStandardMaterial({ vertexColors: false, color: 0xe8a040, roughness: 0.6, flatShading: true })); env.scale.y = 1.15; env.position.y = 2.2; g.add(env);
+    for (let k = 0; k < 6; k++) { const st = new THREE.Mesh(new THREE.SphereGeometry(0.905, 12, 10, k * Math.PI / 3, Math.PI / 6), mat([0xc8423b, 0x2f6aa8, 0x3a9a5a][k % 3])); st.scale.y = 1.15; st.position.y = 2.2; g.add(st); }
+    box(0.42, 0.3, 0.42, 0x8a6a44, 0, 0.75, 0); for (const [x, z] of [[-0.18, -0.18], [0.18, -0.18], [-0.18, 0.18], [0.18, 0.18]]) { const r = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.9, 3), mat(0x5a4a3a)); r.position.set(x, 1.3, z); g.add(r); } }
+  if (g.userData.cars) g.userData.cars.forEach((c) => c.scale.setScalar(1.7)); else g.scale.setScalar(1.7); g.traverse((o) => { if (o.isMesh) o.castShadow = true; }); return g; }
+
+/* ---------------- the journey ---------------- */
+let journey = null, idleT = 0;
+const trailMat = new THREE.MeshBasicMaterial({ color: 0xb9664c, transparent: true, opacity: 0.85 });
+const trail = new THREE.Group(); scene.add(trail);
+function routeFor(i) { const from = i === 0 ? COLOMBO : CH[i - 1].at; const pts = [from, ...CH[i].via, CH[i].at];
+  const flying = CH[i].by === 'balloon'; const v = pts.map((p, k) => P(p, flying ? 0.4 + Math.sin(k / (pts.length - 1) * Math.PI) * 5 : 0.42));
+  return new THREE.CatmullRomCurve3(v, false, 'catmullrom', 0.4); }
+function routeFrom(fromIdx, toIdx) { // replaying a chapter: travel straight from wherever she is now
+  if (fromIdx === toIdx - 1 || (fromIdx === -1 && toIdx === 0)) return routeFor(toIdx);
+  const a = fromIdx < 0 ? COLOMBO : CH[fromIdx].at, b = CH[toIdx].at; const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  return new THREE.CatmullRomCurve3([P(a, 0.42), P(mid, 1.6), P(b, 0.42)]); }
+function startJourney(toIdx) {
+  const c = CH[toIdx]; const kind = c.by; const curve = routeFrom(here, toIdx);
+  trail.clear(); const v = vehicle(kind); scene.add(v);
+  const len = curve.getLength(); const dur = Math.min(9, Math.max(4.5, len / 3.2));
+  journey = { toIdx, curve, v, t: 0, dur, kind, len, dots: 0 };
+  document.getElementById('tripK').textContent = `Chapter ${c.n} · ${c.place}`; document.getElementById('tripT').textContent = c.title;
+  document.getElementById('tripR').textContent = `${here < 0 ? 'Colombo' : CH[here].place} → ${c.place}, ${BY[kind]}`;
+  document.getElementById('trip').classList.add('on'); document.getElementById('home').classList.add('hide'); document.getElementById('skip').style.display = 'block';
+}
+function placeVehicle(j, u) { const p = j.curve.getPointAt(Math.min(1, u)), q = j.curve.getPointAt(Math.min(1, u + 0.01));
+  if (j.kind === 'train') { j.v.userData.cars.forEach((car, k) => { const uu = Math.max(0, u - k * 2.4 / j.len); const a = j.curve.getPointAt(uu), b = j.curve.getPointAt(Math.min(1, uu + 0.01)); car.position.copy(a); car.lookAt(b); }); return p; }
+  j.v.position.copy(p); if (j.kind !== 'balloon') j.v.lookAt(q.x, p.y, q.z); return p; }
+function endJourney() { const j = journey; journey = null; here = j.toIdx; prog.here = here; save();
+  pins[j.toIdx + 1].ring.material.opacity = 1; document.getElementById('skip').style.display = 'none';
+  setTimeout(() => openLevel(j.toIdx), 900); setTimeout(() => { scene.remove(j.v); trail.clear(); }, 2600); }
+document.getElementById('skip').onclick = () => { if (journey) { journey.t = journey.dur; } };
+
+/* ---------------- the level frame ---------------- */
+const frame = document.getElementById('lvl'), fade = document.getElementById('fade');
+let playing = -1, openToken = 0;
+function openLevel(i) { playing = i; fade.classList.add('on'); const tok = ++openToken;
+  setTimeout(() => { if (tok !== openToken) return; frame.src = `levels/${CH[i].id}/index.html?autostart=0&done=${isDone(i) ? 1 : 0}`; frame.onload = () => { if (tok !== openToken) return; frame.classList.add('on'); fade.classList.remove('on'); document.getElementById('trip').classList.remove('on'); }; }, 700); }
+function closeLevel(then) { openToken++; fade.classList.add('on'); setTimeout(() => { frame.classList.remove('on'); frame.src = 'about:blank'; fade.classList.remove('on'); playing = -1; then && then(); }, 700); }
+addEventListener('message', (e) => { const d = e.data || {}; if (!d.pahana) return; const i = CH.findIndex((c) => c.n === d.chapter); if (i < 0) return;
+  if (d.pahana === 'won') { if (!prog.done.includes(CH[i].id)) { prog.done.push(CH[i].id); save(); } renderHome(); }
+  if (d.pahana === 'next') closeLevel(() => { if (i + 1 < CH.length) startJourney(i + 1); else { document.getElementById('end').style.display = 'flex'; showHome(false); } });
+  if (d.pahana === 'map') closeLevel(() => showHome(true));
+});
+document.getElementById('endBack').onclick = () => { document.getElementById('end').style.display = 'none'; showHome(true); };
+
+/* ---------------- the chapter select (Monument Valley style) ---------------- */
+function renderHome() {
+  const box = document.getElementById('chapters'); box.innerHTML = '';
+  const next = CH.findIndex((c, i) => !isDone(i));
+  CH.forEach((c, i) => { const b = document.createElement('button'); const st = isDone(i) ? 'done' : unlocked(i) ? 'next' : 'locked'; b.className = `ch card ${st}`;
+    b.innerHTML = `<div class="n">CHAPTER ${c.n}</div><div class="p">${c.place}</div><div class="t">${c.title}</div><div class="s">${st === 'done' ? '✓ Completed · play again' : st === 'next' ? '▶ Play' : '🔒 Finish chapter ' + CH[i - 1].n + ' first'}</div>`;
+    b.onclick = () => { if (!unlocked(i) || journey || playing >= 0) return; if (here === i) { openLevel(i); document.getElementById('home').classList.add('hide'); } else startJourney(i); };
+    box.appendChild(b); });
+  const all = prog.done.length >= CH.length;
+  document.getElementById('hint').innerHTML = all ? 'The whole journey is complete. Replay any chapter. <button id="reset">Start a new journey</button>' : prog.done.length ? `Next stop: <b>${CH[next].place}</b>.` : 'Your journey begins in Colombo. Tap Chapter I.';
+  const r = document.getElementById('reset'); if (r) r.onclick = () => { prog.done = []; prog.here = -1; here = -1; save(); renderHome(); };
+}
+function showHome(on) { document.getElementById('home').classList.toggle('hide', !on); document.getElementById('trip').classList.remove('on'); }
+renderHome();
+
+/* ---------------- the loop: drift on the home screen, follow the vehicle on a journey ---------------- */
+const clock = new THREE.Clock(); const camPos = new THREE.Vector3(0, 70, 55), camLook = new THREE.Vector3(0, 0, 2);
+function tick() {
+  const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
+  let wantPos, wantLook;
+  if (journey) { const j = journey; j.t += dt; const u = Math.min(1, j.t / j.dur); const e = u * u * (3 - 2 * u); const p = placeVehicle(j, e);
+    if (j.kind === 'balloon') j.v.position.y += Math.sin(t * 2) * 0.05;
+    while (j.dots < Math.floor(e * j.len / 0.55)) { const q = j.curve.getPointAt(Math.min(1, (j.dots * 0.55) / j.len)); const d = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.06, 10), trailMat); d.position.copy(q); d.position.y = j.kind === 'balloon' ? 0.3 : 0.25; trail.add(d); j.dots++; }
+    wantLook = p.clone(); wantLook.y = 0; wantPos = wantLook.clone().add(new THREE.Vector3(0, 26, 22));
+    if (u >= 1) endJourney(); }
+  else { const fc = here < 0 ? P(COLOMBO) : P(CH[here].at); const slow = Math.sin(t * 0.08) * 6; wantLook = new THREE.Vector3(slow * 0.3, 0, 1.5).lerp(fc, 0.25); wantPos = wantLook.clone().add(new THREE.Vector3(Math.sin(t * 0.05) * 8, 66, 50)); }
+  camPos.lerp(wantPos, Math.min(1, dt * 1.6)); camLook.lerp(wantLook, Math.min(1, dt * 2.2)); camera.position.copy(camPos); camera.lookAt(camLook);
+  pins.forEach((pn, k) => { const i = k - 1; const dim = i >= 0 && !unlocked(i); pn.g.visible = true; pn.lab.material.opacity = dim ? 0.45 : 1; pn.ring.material.opacity *= 0.985; pn.ring.scale.setScalar(1 + Math.sin(t * 3) * 0.08);
+    if (!journey && playing < 0 && i >= 0 && unlocked(i) && !isDone(i)) pn.ring.material.opacity = 0.5 + Math.sin(t * 3) * 0.3; });
+  clouds.forEach((c, k) => { const a = Math.atan2(c.position.z, c.position.x) + c.userData.sp * dt * 0.01; const r = Math.hypot(c.position.x, c.position.z); c.position.x = Math.cos(a) * r; c.position.z = Math.sin(a) * r; });
+  sea.material.color.setHSL(0.51, 0.35, 0.67 + Math.sin(t * 0.5) * 0.01);
+  if (playing < 0) renderer.render(scene, camera);
+  requestAnimationFrame(tick);
+}
+tick();
+window.__map = { CH, prog, startJourney, openLevel, get journey() { return journey; }, get playing() { return playing; } };
+</script>
+</body>
+</html>
