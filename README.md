@@ -2,7 +2,7 @@
 
 *A stroll through Sri Lanka*: a calm isometric puzzle game that runs in the browser.
 
-**▶ Play:** https://sahaaaan.github.io/REPO-NAME/ <!-- replace REPO-NAME with this repository's name -->
+**▶ Play:** https://sahaaaan.github.io/lakdive-sakmana/
 
 Works on laptops and phones (portrait or landscape). No install, no account, nothing to download.
 
