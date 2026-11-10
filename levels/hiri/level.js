@@ -211,7 +211,7 @@ function build(E) {
   const floatSpots = [
     () => cafe.localToWorld(new THREE.Vector3(-0.45, 0.25, -1.75)),                  // tucked behind the surfboards at the café
     () => canoeBeach.pos.clone().add(polar(0.9, deg(226 + 180) , 0.18)),            // behind the canoe
-    () => palm1.userData.crown.getWorldPosition(new THREE.Vector3()),                // up in the palm (drops when shaken)
+    () => palm1.userData.crown.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0.32, -0.42, 0.32)), // up in the palm, peeking out under the fronds (drops when shaken)
     () => pool.position.clone().add(new THREE.Vector3(0, 0.25, 0)),                  // in the rock pool (low tide only)
   ];
   scene.updateMatrixWorld(true);
@@ -401,7 +401,7 @@ function build(E) {
     () => fence.localToWorld(new THREE.Vector3(-0.1, 1.75, 0.28)),
     () => scoot.localToWorld(new THREE.Vector3(0, 0.88, -0.15)),
     () => shop.localToWorld(new THREE.Vector3(0.1, 0.9, 1.7)),
-    () => palm2.userData.crown.getWorldPosition(new THREE.Vector3()),
+    () => palm2.userData.crown.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0.3, -0.4, 0.3)),
   ];
   for (let i = 0; i < 4; i++) { const b = bulb(); b.scale.setScalar(1.5); b.position.copy(bulbSpots[i]()); scene.add(b); bulbs.push(b); halo(b, 0xfff0a0, 0.18, 0.32).position.y = -0.12;
     const hit = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 6), new THREE.MeshBasicMaterial({ visible: false })); b.add(hit); tag(b, { hidden: 'b' + i }); b.userData.base = b.position.clone(); }
@@ -437,15 +437,15 @@ function build(E) {
   function gapAt(x, t) { for (const v of traffic) { const d = vx(v, t) - x; const dir = v.userData.lane; const ahead = d * dir; if (ahead < 1.0 && ahead > -4.0) return false; } return true; }
   function holdEdge(e, c) { if (e.kind !== 'cross' || c.d > 0) return false; const ok = gapAt(CROSS_X, clockT.t) && gapAt(CROSS_X, clockT.t + 0.8); c.waiting = !ok; if (!ok && !c.told) { c.told = true; label('Tuk-tuks and scooters zip past. Wait for a gap…', 2600); } return !ok; }
   function onEdgeStart(e) {
-    if (e.kind === 'surf') { surfingNow = true; carriedBoard.visible = true; label('You paddle out, turn, and catch the last wave of the day…', 3800); bell(523); bell(659, 0.2); }
-    if (e.kind === 'tuk') { tukRide = true; bell(440); label('“Main street? Hari, hari.” The tuk-tuk putters up the red road.', 4200); }
+    if (e.kind === 'surf') { surfingNow = true; carriedBoard.visible = true; label('You paddle out, turn, and catch the last wave of the day…', 3800); E.sfx.rush(4.5); E.sfx.whoosh(2.5); [0, 2, 4, 7].forEach((n, i) => E.sfx.pluck(n, { vol: 0.05, delay: 0.6 + i * 0.5, far: 0.3 })); }
+    if (e.kind === 'tuk') { tukRide = true; E.audio.ctx && E.audio.motor({ f: 62, f2: 74, rate: 18, dur: 6.5, vol: 0.045, attack: 0.6, release: 1.5, lp: 600, bus: 'sfx', far: 0.1 }); label('“Main street? Hari, hari.” The tuk-tuk putters up the red road.', 4200); }
   }
   let tukRide = false, surfingNow = false;
   function onArrive(node, e, stop) {
     if (e && e.kind === 'surf') { surfingNow = false; carriedBoard.visible = S.hasBoard; label(node === 'B_point' ? 'You ride it all the way to the surf point. A tuk-tuk is waiting on the red road: <b>tap the tuk-tuk</b> to ride up to the main street.' : 'Back on the beach.', 6000); if (node === 'B_point') setTimeout(() => sparkle(tuk, 3), 800); }
     if (e && e.kind === 'tuk') { tukRide = false; if (node === 'S_enter') { label('Hiriketiya main street. Every café is in candlelight: <em>current giya</em>, the power has gone out.', 5600); setTimeout(() => bubble(owner, 'bulb', { count: 4, filled: S.bulbs, offset: 2.0 }), 2000); } }
     const ev = stop ? L.stepOn(S, node) : null; // plates only react when she stands on them
-    if (ev && ev.k === 'awning') { E.progress(); click(); grind(1.1); const r0 = awning.rotation.x, r1 = ev.on ? AWN_DOWN : AWN_UP;
+    if (ev && ev.k === 'awning') { E.progress(); E.sfx.lever(); E.sfx.flutter(5); E.sfx.pluck(ev.on ? 4 : 1, { vol: 0.05, delay: 1.1 }); const r0 = awning.rotation.x, r1 = ev.on ? AWN_DOWN : AWN_UP;
       anims.push({ t: 0, dur: 1.3, f: (k) => (awning.rotation.x = r0 + (r1 - r0) * k) }); const p0 = plate.userData.p.position.y; anims.push({ t: 0, dur: 0.3, f: (k) => (plate.userData.p.position.y = p0 + ((ev.on ? -0.04 : 0) - p0) * k) });
       label(ev.on ? 'The board creaks under your feet, and the thatched awning swings down into a bridge to the electric pole.' : 'You step on the board again and the awning swings back up.', 4200); }
   }
@@ -467,16 +467,16 @@ function build(E) {
   function onResult(r, what) {
     switch (r) {
       case 'tideLow': case 'tideHigh': case 'tideHighBoard': {
-        const d = dial.userData.disc; const z0 = d.rotation.z; anims.push({ t: 0, dur: 1.4, f: (k) => (d.rotation.z = z0 + k * Math.PI) }); grind(1.2);
+        const d = dial.userData.disc; const z0 = d.rotation.z; E.sfx.rush(3); anims.push({ t: 0, dur: 1.4, f: (k) => (d.rotation.z = z0 + k * Math.PI) }); grind(1.2);
         tide.target = S.tideLow ? LOW : HIGH; if (S.tideLow) setTimeout(() => sparkle(paddle, 2), 1600);
         if (r === 'tideHighBoard') setTimeout(fetchBoard, 1500); break; }
-      case 'gotPaddle': paddle.visible = false; carriedPaddle.visible = true; bell(620); break;
+      case 'gotPaddle': paddle.visible = false; carriedPaddle.visible = true; E.sfx.pickup(); break;
       case 'fisherNeeds': bubble(fisher, 'float', { count: 4, filled: S.floats, offset: 1.6 }); setTimeout(() => bubble(fisher, 'paddle', { offset: 1.6 }), 2900); bump(); break;
-      case 'fisherWaits': carriedPaddle.visible = false; bubble(fisher, 'wave', { offset: 1.6 }); bell(660); pushCanoe(); break;
-      case 'fisherGoes': carriedPaddle.visible = false; bell(660); pushCanoe(); setTimeout(fetchBoard, 1200); break;
-      case 'gotBoard': board.visible = false; carriedBoard.visible = true; bell(740); bubble(girl, 'wave', { offset: 2.1 }); setTimeout(() => { sparkle(surfWave, 3); label('A wave is building in the bay. <b>Tap the glowing wave</b> to paddle out and ride it.', 5200); }, 2200); break;
+      case 'fisherWaits': carriedPaddle.visible = false; giveFloats(); bubble(fisher, 'wave', { offset: 1.6 }); E.sfx.place(); E.sfx.splash(); pushCanoe(); break;
+      case 'fisherGoes': carriedPaddle.visible = false; giveFloats(); E.sfx.place(); E.sfx.splash(); pushCanoe(); setTimeout(fetchBoard, 1200); break;
+      case 'gotBoard': board.visible = false; carriedBoard.visible = true; E.sfx.pickup(); bubble(girl, 'wave', { offset: 2.1 }); setTimeout(() => { sparkle(surfWave, 3); label('A wave is building in the bay. <b>Tap the glowing wave</b> to paddle out and ride it.', 5200); }, 2200); break;
       case 'needBulbs': bubble(owner, 'bulb', { count: 4, filled: S.bulbs, offset: 2.0 }); bump(); break;
-      case 'bulbsIn': girl.userData.orbit.clear(); bell(880); streetLights.forEach((sl) => sl.userData.bulbs.forEach((b) => b.material.color.setHex(0xb8a070))); break;
+      case 'bulbsIn': girl.userData.orbit.clear(); E.sfx.place(); [4, 6, 8].forEach((n, i) => E.sfx.pluck(n, { vol: 0.05, delay: 0.15 + i * 0.12 })); streetLights.forEach((sl) => sl.userData.bulbs.forEach((b) => b.material.color.setHex(0xb8a070))); break;
       case 'turned': case 'wired': { const i = +what[1] - 1; const d = junction[i].userData.dial; const z0 = d.rotation.z; anims.push({ t: 0, dur: 0.35, f: (k) => (d.rotation.z = z0 - k * Math.PI / 2) }); click(); E.stats.turns++; syncWires(); if (r === 'wired') bell(988); break; }
       case 'genNoBulbs': bubble(gen, 'bulb', { offset: 1.4 }); bump(); break;
       case 'genNoWire': bubble(gen, 'bolt', { offset: 1.4 }); junction.forEach((j) => sparkle(j, 1)); bump(); break;
@@ -493,13 +493,19 @@ function build(E) {
       done: () => { anims.push({ t: 0, dur: 3.2, f: (k) => { const p = reef.clone().lerp(home, k); canoe.position.set(p.x, tide.level - 0.12, p.z); fisher.position.set(p.x, tide.level + 0.18, p.z); board.position.copy(p).add(new THREE.Vector3(0, 0.5, 0)); },
         done: () => { board.position.copy(boardOnSand.pos); board.rotation.set(0, boardOnSand.rot, 0); fisher.position.copy(fh); sparkle(board, 3); label('He drops your board on the sand with a grin. “Last wave of the day, nangi!”', 4600); E.refresh(); } }); } });
   }
+  function giveFloats() { // the floats circling her fly over to the fisherman's net
+    const orbit = girl.userData.orbit; const kids = [...orbit.children]; if (!kids.length) return;
+    const to = fisher.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0.6, 0));
+    kids.forEach((c, i) => { const from = c.getWorldPosition(new THREE.Vector3()); orbit.remove(c); scene.add(c); c.position.copy(from);
+      anims.push({ t: -i * 0.12, dur: 0.8, f: (e) => { e = Math.max(0, e); c.position.lerpVectors(from, to, e); c.position.y += Math.sin(e * Math.PI) * 0.8; c.scale.setScalar(0.55 * (1 - e * 0.7)); }, done: () => scene.remove(c) }); });
+  }
   function lightUp() {
-    document.body.classList.add('won'); grind(1.6); E.shake(0.3);
+    document.body.classList.add('won'); streetAlive = true; if (E.audio.ctx) { E.sfx.lever(); E.audio.motor({ f: 48, f2: 52, rate: 30, dur: 2.2, vol: 0.05, attack: 0.15, release: 0.6, lp: 500, bus: 'sfx' }); } E.shake(0.3);
     const ex = gen.userData.ex; anims.push({ t: 0, dur: 0.6, lin: true, f: (k) => (ex.position.y = 0.9 + Math.sin(k * 30) * 0.03) });
     cables.forEach((c) => c.material.emissive.setHex(0x553300));
     const all = streetLights.flatMap((sl) => sl.userData.bulbs).concat(cafe.userData.lights.userData.bulbs);
     all.sort((a, b) => a.getWorldPosition(new THREE.Vector3()).distanceTo(gen.getWorldPosition(new THREE.Vector3())) - b.getWorldPosition(new THREE.Vector3()).distanceTo(gen.getWorldPosition(new THREE.Vector3())));
-    all.forEach((b, i) => setTimeout(() => { b.material.color.setHex(b.userData.on || 0xffe08a); if (i % 9 === 0) bell(784 + (i % 5) * 70, 0); }, 1200 + i * 18));
+    all.forEach((b, i) => setTimeout(() => { b.material.color.setHex(b.userData.on || 0xffe08a); if (i % 9 === 0) E.sfx.pluck(4 + ((i / 9) | 0) % 8, { vol: 0.04, far: 0.4 }); }, 1200 + i * 18));
     setTimeout(() => { warmLights.forEach((m) => { if (m.isMaterial) { m.emissive.setHex(0xffb35a); m.emissiveIntensity = 0.9; } else m.intensity = 0; }); signs.forEach((m) => (m.emissiveIntensity = 0.9)); streetLamp.intensity = 80; }, 1200 + all.length * 18);
     for (let i = 0; i < 4; i++) { const p = person([0x9a3a6a, 0x3fa06a, 0xf2c12e, 0x2e6db4][i], [0x333333, 0x7a5a3a, 0x2f5fa8, 0x333333][i]); p.position.copy(s2(-7 + i * 4.3, 0, 0)).setZ(i % 2 ? 3.4 : -3.5); p.scale.setScalar(0.001); street.add(p);
       anims.push({ t: 0, dur: 0.6, f: (k) => p.scale.setScalar(Math.max(0.001, k)) }); }
@@ -511,12 +517,12 @@ function build(E) {
     const r = L.tap(S, k); if (!r) { if (k === 'f3' && !S.tideLow) label('Something orange glints under the water in the rock pool.', 3000); return; }
     E.progress();
     if (r === 'palmDrop') { const pm = k === 'palm1' ? palm1 : palm2; const thing = k === 'palm1' ? floats[2] : bulbs[3]; const to = (k === 'palm1' ? P('B_palm').add(polar(0.7, deg(205), 0.2)) : s2w(-8.4, 4.4, 0.25));
-      const cr = pm.userData.crown; anims.push({ t: 0, dur: 0.6, lin: true, f: (e) => (cr.rotation.z = Math.sin(e * Math.PI * 5) * 0.12 * (1 - e)) }); click();
+      const cr = pm.userData.crown; anims.push({ t: 0, dur: 0.6, lin: true, f: (e) => (cr.rotation.z = Math.sin(e * Math.PI * 5) * 0.12 * (1 - e)) }); E.sfx.flutter(9); setTimeout(() => E.sfx.thunk(), 900);
       const from = thing.position.clone(); anims.push({ t: 0, dur: 1.0, f: (e) => { thing.position.lerpVectors(from, to, e); thing.position.y = from.y + (to.y - from.y) * e * e; }, done: () => { thing.userData.base = to.clone(); sparkle(thing, 2); } });
       label(k === 'palm1' ? 'You shake the palm. Something orange tumbles out of the crown.' : 'You give the palm a shake. A bulb drops out of the fronds!', 3000); return; }
-    if (r === 'leaf') { leaf.visible = false; bell(988); bell(1318, 0.15); label('<em>Puskola</em> · an ancient ola-leaf page, tucked in the thatch'); E.refresh(); return; }
+    if (r === 'leaf') { leaf.visible = false; E.sfx.found(4); label('<em>Puskola</em> · an ancient ola-leaf page, tucked in the thatch'); E.refresh(); return; }
     const isF = r === 'float'; const thing = (isF ? floats : bulbs)[+k.slice(1)];
-    bell(isF ? 700 + S.floats * 80 : 880 + S.bulbs * 70);
+    E.sfx.found(isF ? S.floats : S.bulbs + 1);
     const from = thing.position.clone(); thing.userData.taken = true;
     anims.push({ t: 0, dur: 0.9, f: (e) => { const to = girl.userData.orbit.getWorldPosition(new THREE.Vector3()); thing.position.lerpVectors(from, to, e); thing.position.y += Math.sin(e * Math.PI) * 1.2; thing.scale.setScalar(1.2 - e * 0.7); },
       done: () => { thing.visible = false; const mini = isF ? netFloat() : bulb(true); mini.scale.setScalar(0.55); girl.userData.orbit.add(mini); E.refresh(); } });
@@ -566,7 +572,7 @@ function build(E) {
     let f = L.areaOf(S.player) === 2 ? 1 : 0;
     if (tukRide) { const a = roadA, b = roadB, d = b.clone().sub(a); const rel = girl.position.clone().sub(a); f = THREE.MathUtils.clamp(rel.dot(d) / d.lengthSq(), 0, 1); }
     const k = f * f * (3 - 2 * f);
-    return { target: new THREE.Vector3(1.6, 1.2, 1.6).lerp(SC.clone().add(new THREE.Vector3(0, 1.6, 0)), k), zoom: 1 - 0.02 * k, k };
+    return { target: new THREE.Vector3(1.6, 1.2, 1.6).lerp(SC.clone().add(new THREE.Vector3(0, 1.6, 0)), k), zoom: 1 - 0.02 * k, k, pz: 1.12 - 0.2 * k };
   }
   const skyGold = { sun: new THREE.Color(0xffd6a0), hemi: new THREE.Color(0xfff0dc), fog: new THREE.Color(0xf6dcc0) };
   const skyNight = { sun: new THREE.Color(0x8f86c8), hemi: new THREE.Color(0x6f6aa8), fog: new THREE.Color(0x4a3f66) };
@@ -613,6 +619,35 @@ function build(E) {
     if (!S.won) syncWires();
   }
 
-  return { nodePos, surfaceTarget, edgePoints, holdEdge, onEdgeStart, onArrive, onResult, tapHidden, actionFor, items, unreachable, hintTarget, inventory, focus, tick, MSG,
+  /* ---------- sound ---------- */
+  let streetAlive = false;
+  const inBay = () => (S.player[0] === 'B' ? 1 : 0);
+  function sound(A) { // the bay at golden hour: slow waves and palms; the street at dusk: crickets, geckos, passing tuk-tuks; then café life
+    const waves = A.loop({ color: 'pink', type: 'lowpass', f: 520, q: 0.5, vol: 0.05, lfo: [0.11, 0.7] });
+    const wash = A.loop({ color: 'white', f: 1500, q: 0.5, vol: 0.008, lfo: [0.11, 0.8], pan: 0.3 });
+    const palms = A.loop({ color: 'white', f: 3800, q: 0.4, vol: 0.002, lfo: [0.07, 0.6], pan: -0.3 });
+    const night = A.loop({ color: 'pink', f: 380, q: 0.5, vol: 0, lfo: [0.05, 0.3] });
+    const cafe = A.loop({ color: 'pink', f: 650, q: 1.4, vol: 0, lfo: [2.3, 0.5] });
+    const hum = A.loop({ color: 'brown', type: 'lowpass', f: 120, q: 0.5, vol: 0 });
+    A.every([5, 11], () => inBay() && A.bird('bulbul', { vol: 0.8 }), 4);
+    A.every([2.5, 6], () => inBay() && A.bird('chirp', { vol: 0.7 }), 2);
+    A.every([30, 50], () => inBay() && A.bird('koel', { vol: 0.6, far: 0.7 }), 15);
+    A.every([1, 2.5], () => !inBay() && A.bird('cricket', { far: 0.4 }));
+    A.every([9, 20], () => !inBay() && A.bird('gecko', { far: 0.25 }), 6);
+    A.every([3.5, 7], () => { if (inBay()) return; const sc = Math.random() < 0.4, l = Math.random() < 0.5 ? -1 : 1;
+      A.motor(sc ? { f: 120, f2: 105, rate: 40, dur: 2.6, vol: 0.016, lp: 900, pan: [-0.8 * l, 0.8 * l], depth: 0.3 } : { f: 66, f2: 60, rate: 17, dur: 3.2, vol: 0.02, lp: 600, pan: [-0.8 * l, 0.8 * l] });
+      if (Math.random() < 0.12) A.osc('triangle', 440, A.now(1.2), 0.18, { bus: 'amb', vol: 0.008, lp: 1500, far: 0.4, pan: 0.3 * l }); }, 2);
+    A.every([2, 5], () => streetAlive && !inBay() && [0, 1].forEach((i) => A.osc('sine', A.rnd(2600, 3400), A.now(i * 0.09), 0.08, { bus: 'amb', vol: 0.006, far: 0.4, pan: A.rnd(-0.5, 0.5) })));
+    return { update() { const b = inBay();
+      waves.to(0.05 * (b ? 1 : 0.15)); wash.to(0.008 * (b ? 1 : 0.1)); palms.to(0.002 * b); night.to(0.012 * (1 - b));
+      cafe.to(streetAlive && !b ? 0.012 : 0); hum.to(streetAlive && !b ? 0.03 : 0, 2); } };
+  }
+  function surfaceAt(pos, cur) {
+    const ids = cur ? [cur.from, cur.to] : [];
+    if (ids.some((i) => i === 'B_reef' || i === 'B_pool')) return 'water';
+    if (ids.some((i) => i === 'S_balc' || i === 'S_pole' || i === 'S_stair')) return 'wood';
+    return ids.some((i) => i && i[0] === 'S') ? 'stone' : 'sand';
+  }
+  return { sound, surfaceAt, nodePos, surfaceTarget, edgePoints, holdEdge, onEdgeStart, onArrive, onResult, tapHidden, actionFor, items, unreachable, hintTarget, inventory, focus, tick, MSG,
     reachCap: { fisher: 0.9, owner: 1.3, gen: 0.8 }, tod };
 }

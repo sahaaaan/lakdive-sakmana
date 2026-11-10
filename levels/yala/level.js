@@ -26,14 +26,15 @@ body.yala.won{--sky-top:#3d3463;--sky-mid:#b8698a;--sky-bot:#f0a060}
 #listen{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;z-index:7;display:none;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;border:0;font:600 14px Nunito Sans,sans-serif;color:var(--ink);background:rgba(255,250,244,.92);box-shadow:0 4px 14px rgba(90,60,45,.18);cursor:pointer}
 #listen.on{display:flex}#listen i{display:inline-block;width:5px;margin-left:2px;border-radius:2px;background:#c9b9a8;vertical-align:bottom}#listen i.lit{background:#c8643c}
 #signs b{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
-@media (max-width:600px){#signs{display:none}}`;
+#notesBtn{display:none;position:fixed;left:12px;bottom:12px;z-index:7;width:46px;height:46px;border-radius:12px;border:0;place-items:center;color:var(--ink);pointer-events:auto}#notesBtn svg{width:22px;height:22px}
+@media (max-width:600px), (max-height:500px){#signs{display:none;left:12px;right:12px;bottom:76px;max-width:none;pointer-events:auto}#signs.open{display:block}#notesBtn{display:grid}#listen{bottom:auto;top:118px}}`;
 
 export default {
   heroGlb: HERO_GLB, slots: SLOTS, icons: ICONS, logic: L,
   meta: {
     chapter: 'III', place: 'Yala', title: 'The Lost Calf', tagline: 'A baby elephant has lost its herd.', bodyClass: 'yala', css: CSS,
     intro: 'On the morning drive, the ranger spots a baby elephant’s trail: it has wandered off alone. You’ll know it by the pink freckles on its ears and trunk. Read the signs on the red tracks to find it, bring it safely across the river, then find its family at the waterholes before dark.',
-    howto: ['<b>Listen</b> at each crossroads (the Listen button): the louder the calf’s call, the closer you are.', '<b>Read the signs</b> at each crossroads (Tracker’s notes): the calf’s prints are small, round and <b>alone</b>, toes point the way it walked, fresh dung still steams, broken branches show where it pushed through.',
+    howto: ['<b>Listen</b> at each crossroads (the Listen button): the louder the calf’s call, the closer you are.', '<b>Read the signs</b> at each crossroads (Tracker’s notes): the calf’s prints are small, round and <b>alone</b>, toes point the way it walked, broken branches show where it pushed through. Where the ground is baked hard there are no prints at all: listen.',
       '<b>Tap the calf</b> to tell it to stay or to follow you. It can do things you can’t.', '<b>Count</b>: the compass shows north. Count tracks from the lone tree, and count elephants.'],
     startLabel: 'The ranger kneels by the track: “Small prints, fresh. A calf, on its own. Follow its trail and watch for the signs at every crossroads.”',
     winTitle: 'Back with the herd', winSub: 'Evening at the waterhole', inviteNode: 'J12', camStart: [3, 1.2, -1], fog: 0xf3e6cc, winDelay: 9000,
@@ -184,29 +185,29 @@ function build(E) {
   const clue = new THREE.Group(); scene.add(clue);
   function prints(a, b, size, n, fresh = true) { const A = P(a), B = P(b), d = B.clone().sub(A).setY(0).normalize(); const side = new THREE.Vector3(-d.z, 0, d.x);
     for (let i = 0; i < n; i++) { const t = 0.18 + i * 0.13; const p = print(size, d, fresh); p.position.add(A.clone().lerp(B, t)).add(side.clone().multiplyScalar((i % 2 ? 1 : -1) * size * 0.9)); p.position.y = 0.055; clue.add(p); } }
-  for (let k = 0; k < TRAIL.length - 1; k++) { prints(TRAIL[k], TRAIL[k + 1], 0.16, 5);
+  const HARD = [2, 4]; // J11→J21 and J20→J30: baked hard ground, no prints
+  for (let k = 0; k < TRAIL.length - 1; k++) { if (!HARD.includes(k)) prints(TRAIL[k], TRAIL[k + 1], 0.16, 3, false);
     const A = P(TRAIL[k]), B = P(TRAIL[k + 1]), d = B.clone().sub(A).setY(0).normalize(); const side = new THREE.Vector3(-d.z, 0, d.x);
-    if (k % 2 === 0) { const dg = dung(true); dg.position.copy(A.clone().lerp(B, 0.62)).add(side.clone().multiplyScalar(0.25)); clue.add(dg); }
-    else { const br = brokenBranch(); br.position.copy(A.clone().lerp(B, 0.5)).add(side.clone().multiplyScalar(0.95)); br.rotation.y = Math.atan2(d.x, d.z); clue.add(br); } }
+    if (k % 2) { const br = brokenBranch(); br.position.copy(A.clone().lerp(B, 0.5)).add(side.clone().multiplyScalar(0.95)); br.rotation.y = Math.atan2(d.x, d.z); clue.add(br); } }
   // decoys: big adult prints, old dry dung, bear prints
   prints('J12', 'J22', 0.3, 4); prints('J22', 'J32', 0.3, 3);
   prints('J21', 'J31', 0.3, 4); prints('J31', 'G_tusk', 0.32, 3);
   function kindPrints(kind, a, b, size, n, t0 = 0.18) { const A = P(a), B = P(b), d = B.clone().sub(A).setY(0).normalize(); const side = new THREE.Vector3(-d.z, 0, d.x);
     for (let i = 0; i < n; i++) { const p = pawPrint(kind, size, d); p.position.add(A.clone().lerp(B, t0 + i * (0.7 / n))).add(side.clone().multiplyScalar((i % 2 ? 1 : -1) * size * 1.1)); p.position.y = 0.055; clue.add(p); } }
-  { const dg = dung(false); dg.position.copy(P('J11').lerp(P('J10'), 0.55)).add(new THREE.Vector3(0.3, 0, 0)); clue.add(dg); kindPrints('hoof', 'J11', 'J10', 0.18, 3); kindPrints('hoof', 'J10', 'G_buff', 0.18, 4); }
+  { kindPrints('hoof', 'J11', 'J10', 0.18, 3); kindPrints('hoof', 'J10', 'G_buff', 0.18, 4); }
   // a sloth bear's prints: about calf-sized, but with five toes and long claw marks
   kindPrints('bear', 'J02', 'J01', 0.14, 4); kindPrints('bear', 'J01', 'J00', 0.14, 3); kindPrints('bear', 'J00', 'G_bear', 0.14, 3);
   // a leopard's pug marks: round, four toes, no claws
   kindPrints('leo', 'J01', 'G_leo', 0.13, 5);
   // two other young elephants have wandered too: small prints, alone, just like ours
-  prints('J01', 'J00', 0.16, 3); prints('J00', 'G_kid', 0.16, 5); { const dg = dung(true); dg.position.copy(P('J00').lerp(P('G_kid'), 0.55)).add(new THREE.Vector3(0.3, 0, 0)); clue.add(dg); }
-  prints('J22', 'J32', 0.16, 3); prints('J32', 'G_kid2', 0.16, 5); { const br = brokenBranch(); br.position.copy(P('J32').lerp(P('G_kid2'), 0.5)).add(new THREE.Vector3(0.95, 0, 0)); clue.add(br); }
+  prints('J01', 'J00', 0.16, 3, false); prints('J00', 'G_kid', 0.16, 3, false);
+  prints('J22', 'J32', 0.16, 3, false); prints('J32', 'G_kid2', 0.16, 3, false); prints('J11', 'J10', 0.16, 2, false); { const br = brokenBranch(); br.position.copy(P('J32').lerp(P('G_kid2'), 0.5)).add(new THREE.Vector3(0.95, 0, 0)); clue.add(br); }
   // a peacock's three-toed prints and a dropped tail feather
   kindPrints('bird', 'J12', 'G_peac', 0.16, 6);
   { const f = new THREE.Group(); const q = mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.9, 3), mat(0xd8c8a0)); q.rotation.z = Math.PI / 2; f.add(q); const eye = mesh(new THREE.CircleGeometry(0.1, 10), mat(0x2a8a8a)); eye.rotation.x = -Math.PI / 2; eye.position.set(0.45, 0.01, 0); f.add(eye);
     const c = mesh(new THREE.CircleGeometry(0.05, 8), mat(0x1a2a6a)); c.rotation.x = -Math.PI / 2; c.position.set(0.45, 0.015, 0); f.add(c); f.position.copy(P('J12').lerp(P('G_peac'), 0.45)).add(new THREE.Vector3(0.4, 0.06, 0)); f.rotation.y = 0.6; clue.add(f); }
   // a calf that is NOT lost: small fresh prints, but with big prints right beside them (its mother)
-  prints('J20', 'G_mom', 0.16, 5); prints('J20', 'G_mom', 0.3, 4); { const dg = dung(true); dg.position.copy(P('J20').lerp(P('G_mom'), 0.5)).add(new THREE.Vector3(0.35, 0, 0)); clue.add(dg); }
+  prints('J20', 'G_mom', 0.16, 3, false); prints('J20', 'G_mom', 0.3, 4);
   // dead-end residents
   const bearA = bear(); bearA.position.copy(P('G_bear')).add(new THREE.Vector3(-0.6, 0, 0)); bearA.rotation.y = Math.PI / 2; scene.add(bearA); { const tm = mesh(new THREE.ConeGeometry(0.5, 1.4, 6), mat(0xb5643c)); tm.position.copy(P('G_bear')).add(new THREE.Vector3(-1.3, 0.7, 0.6)); scene.add(tm); }
   const buffA = buffalo(); buffA.position.copy(P('G_buff')).add(new THREE.Vector3(0, 0, -0.9)); scene.add(buffA); { const mud = mesh(new THREE.CircleGeometry(1.1, 16), mat(0x6a4a32)); mud.rotation.x = -Math.PI / 2; mud.position.copy(P('G_buff')).add(new THREE.Vector3(0, 0.04, -1)); scene.add(mud); }
@@ -224,7 +225,7 @@ function build(E) {
   const kidB = elephant(0.4, { color: 0xa09890 }); kidB.position.copy(P('G_kid2')).add(new THREE.Vector3(0, 0, 0.9)); kidB.rotation.y = Math.PI; scene.add(kidB);
   { const dust = mesh(new THREE.CircleGeometry(1.0, 14), mat(0xb8704a)); dust.rotation.x = -Math.PI / 2; dust.position.copy(P('G_kid2')).add(new THREE.Vector3(0, 0.04, 0.9)); scene.add(dust); } momCalf.position.copy(P('G_mom')).add(new THREE.Vector3(0.6, 0, -0.5)); scene.add(momCalf);
   const deadEnd = { G_bear: [bearA, 'A sloth bear, snout-deep in a termite mound! Those prints had five toes and long claw marks: the bear’s, not the calf’s. Back away quietly.'],
-    G_buff: [buffA, 'A water buffalo wallowing in old mud. The split-hoof prints and dry dung were its, days old. Wrong trail.'],
+    G_buff: [buffA, 'A water buffalo wallowing in old mud. Those split-hoof prints were its. Wrong trail.'],
     G_tusk: [tusker, 'A huge tusker! Those big prints were his, not the calf’s. Back off slowly…'],
     G_leo: [leoA, 'A leopard, draped along a dead branch, watching you with green eyes. Round pug marks, no claws: a cat. Back away slowly…'],
     G_peac: [peaA, 'A peacock fans his tail at you and screams. Three thin toes: bird prints. Not the calf!'],
@@ -244,7 +245,7 @@ function build(E) {
     for (let k = 0; k < 3; k++) { const tw = mesh(new THREE.CylinderGeometry(0.025, 0.04, 0.5, 5), mat(0x9a7a54)); tw.position.set(-0.5 + k * 0.45, 0.25, 0); tw.rotation.z = 0.8; b.add(tw); const lf = mesh(new THREE.IcosahedronGeometry(0.16, 0), mat(PAL.leaf)); lf.position.set(-0.35 + k * 0.45, 0.45, 0); b.add(lf); }
     // lie on the track just outside the thicket, so they can be seen from anywhere
     { const jn = L.edges({}).find((e) => e.a === id || e.b === id); const from = P(jn.a === id ? jn.b : jn.a); const into = P(id).sub(from).setY(0).normalize(); const side = new THREE.Vector3(-into.z, 0, into.x);
-      b.position.copy(P(id)).addScaledVector(into, -2.2).addScaledVector(side, 0.3); b.rotation.y = Math.atan2(into.x, into.z) + Math.PI / 2 + 0.3; } scene.add(b); halo(b, 0xffe2a0, 0.55, 0.8).position.y = 0.04; tag(b, { item: 'br' + i }); items['br' + i] = b; branches.push(b); });
+      b.position.copy(P(id)).addScaledVector(into, -2.2).addScaledVector(side, 0.3); b.rotation.y = Math.atan2(into.x, into.z) + Math.PI / 2 + 0.3; } scene.add(b); halo(b, 0xffe2a0, 0.55, 0.8).position.y = 0.04; { const hit = new THREE.Mesh(new THREE.SphereGeometry(0.9, 8, 6), new THREE.MeshBasicMaterial({ visible: false })); hit.position.y = 0.3; b.add(hit); } tag(b, { hidden: 'b' + i }); branches.push(b); });
   // the rock pool where the calf drinks
   const rockPool = new THREE.Group(); rockPool.position.copy(P('G_pool')).add(new THREE.Vector3(0, 0, 1.3)); scene.add(rockPool);
   { const w = new THREE.Mesh(new THREE.CircleGeometry(1.1, 20), new THREE.MeshStandardMaterial({ color: PAL.water, roughness: 0.2 })); w.rotation.x = -Math.PI / 2; w.position.y = 0.05; rockPool.add(w);
@@ -344,7 +345,7 @@ function build(E) {
   // HUD: compass and the tracker's notes
   document.body.insertAdjacentHTML('beforeend', `<svg id="compass" viewBox="0 0 64 64"><circle cx="32" cy="32" r="30" fill="rgba(255,250,244,.88)" stroke="rgba(122,96,82,.3)"/><g id="needle"><path d="M32 8l6 24h-12z" fill="#c8423b"/><path d="M32 56l6-24h-12z" fill="#7b6a61"/><text x="32" y="20" font-size="9" font-weight="700" text-anchor="middle" fill="#fff" font-family="Nunito Sans,sans-serif">N</text></g></svg>
     <button id="listen"><svg width="18" height="18" viewBox="0 0 32 32"><path d="M16 4a9 9 0 00-9 9c0 4 3 5 3 8s2 6 6 6 4-3 4-3l-2-1s-1 2-2 2-3-2-3-4 4-4 4-8a2 2 0 00-4 0" fill="#c8643c"/></svg>Listen <span><i style="height:6px"></i><i style="height:10px"></i><i style="height:14px"></i></span></button>
-    <div id="signs" class="card"><b>Tracker's notes</b><br>Elephant: round prints, toenails at the front (toes point the way it walked).<br>Our calf: <b>small prints, alone</b>, and <b>pink freckles on its ears and trunk</b>. Other young elephants wander too: check before you bring one home. Small beside big = a calf with its mother.<br>Five toes + long claws = sloth bear. Round, four toes, no claws = leopard.<br>Three thin toes = bird. Split hoof = buffalo.<br>Steaming dung = fresh. Dry = days old. Broken branches = something pushed through.</div>`);
+    <button id="notesBtn" class="card" aria-label="Tracker's notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></button><div id="signs" class="card"><b>Tracker's notes</b><br>Elephant: round prints, toenails at the front (toes point the way it walked).<br>Our calf: <b>small prints, alone</b>, and <b>pink freckles on its ears and trunk</b>. Other young elephants wander too: check before you bring one home. Small beside big = a calf with its mother.<br>Five toes + long claws = sloth bear. Round, four toes, no claws = leopard.<br>Three thin toes = bird. Split hoof = buffalo.<br>Broken branches = something pushed through. No prints on hard ground: listen.<br>Fallen branches for the ramp: tap them wherever you see them.</div>`);
 
   /* ================= VIEW SYNC & STORY ================= */
   const nodePos = (id) => P(id);
@@ -359,11 +360,35 @@ function build(E) {
     return null;
   }
   let riding = false;
-  function onEdgeStart(e) { if (e.kind === 'jeep') { riding = true; bell(440); label('“Hold on!” The ranger drives you to the waterhole plain, the calf trotting behind.', 4200); } }
+  /* ---------- sound ---------- */
+  function animalCall(node) { if (!E.AC) return; const A = E.audio, b = { bus: 'sfx', far: 0.35 };
+    if (node === 'G_bear') for (let i = 0; i < 3; i++) { A.hiss(A.now(i * 0.35), 0.22, { ...b, type: 'lowpass', color: 'brown', f: 320, vol: 0.12 }); A.osc('sawtooth', 85, A.now(i * 0.35), 0.2, { ...b, to: 70, vol: 0.02, lp: 300 }); }
+    else if (node === 'G_buff') A.osc('sawtooth', 112, A.now(), 1.3, { ...b, to: 92, vol: 0.03, lp: 420, a: 0.2, vib: [4, 3] });
+    else if (node === 'G_leo') for (let i = 0; i < 4; i++) { A.hiss(A.now(i * 0.42), 0.25, { ...b, type: 'lowpass', color: 'brown', f: 420, vol: 0.12, a: 0.08 }); A.osc('sawtooth', 75, A.now(i * 0.42), 0.25, { ...b, vol: 0.016, lp: 260, a: 0.08 }); }
+    else if (node === 'G_peac') A.bird('peacock', { ...b, vol: 2.2, pan: 0 });
+    else if (node === 'G_tusk' || node === 'G_mom') { A.bird('elephant', { ...b, vol: 1.6, pan: 0 }); if (node === 'G_mom') setTimeout(() => A.bird('calf', { ...b, vol: 1.2 }), 900); }
+    else A.bird('calf', { ...b, vol: 1.2, pan: 0 }); }
+  let sunset = false;
+  function sound(A) { // morning on the red tracks: cicadas, birds, far peacocks and elephants; golden hour at the waterholes
+    A.loop({ color: 'pink', f: 450, q: 0.45, vol: 0.022, lfo: [0.05, 0.4] });
+    const pools = A.loop({ color: 'pink', f: 700, q: 1.1, vol: 0, lfo: [0.3, 0.55] });
+    const area = () => L.areaOf(S.player);
+    A.every([6, 14], () => A.bird('cicada', { far: 0.5 }), 3);
+    A.every([2.5, 7], () => !sunset && A.bird('chirp'), 1.5);
+    A.every([5, 12], () => !sunset && A.bird('bulbul'), 4);
+    A.every([25, 45], () => A.bird('peacock', { far: 0.8, vol: 0.7 }), 12);
+    A.every([30, 55], () => A.bird('elephant', { far: 0.9, vol: 0.6 }), 20);
+    A.every([16, 30], () => calfState.mode === 'follow' && A.bird('calf', { far: 0.2, vol: 0.5 }), 10);
+    A.every([1, 2.5], () => sunset && A.bird('cricket', { far: 0.4 }));
+    A.every([2, 4.5], () => area() === 2 && A.sfx.plip({ vol: 0.012, bus: 'amb', far: 0.5, pan: A.rnd(-0.6, 0.6) }));
+    return { update() { pools.to(area() === 2 ? 0.014 : 0); } };
+  }
+  function surfaceAt(pos, cur) { const e = cur && cur.e; if (e && e.kind === 'bridge') return 'wood'; return 'sand'; }
+  function onEdgeStart(e) { if (e.kind === 'jeep') { riding = true; E.audio.ctx && E.audio.motor({ f: 52, f2: 60, rate: 13, dur: 7, vol: 0.05, attack: 0.8, release: 1.6, lp: 520, bus: 'sfx', far: 0.1, depth: 0.35 }); label('“Hold on!” The ranger drives you to the waterhole plain, the calf trotting behind.', 4200); } }
   function onArrive(node, e, stop) {
     if (e && e.kind === 'jeep') { riding = false; if (node === 'D') setTimeout(() => { bubble(girl, 'radio', { offset: 2.1 }); label('📻 “Ranger post here. The calf’s herd went <b>north-east of the lone tree</b>. <b>Seven</b> of them, with <b>two little ones</b>. Over.”', 9000); }, 700); }
     if (deadEnd[node]) { const [animal, msg] = deadEnd[node]; if (!animal.visible) { animal.visible = true; const th = thickets[node]; if (th) th.children.forEach((b) => { const s0 = b.scale.clone(); anims.push({ t: 0, dur: 0.8, f: (k) => b.scale.set(s0.x * (1 - 0.55 * k), s0.y * (1 - 0.7 * k), s0.z * (1 - 0.55 * k)) }); }); if (node === 'G_mom') momCalf.visible = true; const s0 = animal.scale.x; anims.push({ t: 0, dur: 0.5, f: (k) => animal.scale.setScalar(s0 * (0.6 + 0.4 * k)) }); }
-      if (stop) { label(msg, 5200); animal.userData.alarm = 1.5; bump(); } }
+      if (stop) { label(msg, 5200); animal.userData.alarm = 1.5; animalCall(node); } }
     if (node === 'G_calf' && !calfSeen) { calfSeen = true; calf.visible = true; calfThicket.children.forEach((b) => { const s0 = b.scale.clone(); anims.push({ t: 0, dur: 0.8, f: (k) => b.scale.set(s0.x * (1 - 0.55 * k), s0.y * (1 - 0.7 * k), s0.z * (1 - 0.55 * k)) }); }); bell(988); label(S.branches < 3 ? 'There, behind the thicket: pink freckles on its ears and trunk. It’s our calf! Stuck in a dry gully, calling for its mother. It needs a ramp to climb out: bring three fallen branches from the wrong trails.' : 'There, behind the thicket: the calf, stuck in a dry gully!', 6000); }
   }
   const MSG = {
@@ -379,23 +404,23 @@ function build(E) {
   };
   function onResult(r, what) {
     switch (r) {
-      case 'foundCalf': ramp.visible = true; calfState.mode = 'follow'; bell(660); bell(880, 0.2); for (const m of calf.children) m.traverse((o) => { if (o.isMesh) o.userData.item = 'calf'; }); calf.traverse((o) => { if (o.isMesh) o.userData.item = 'calf'; });
+      case 'foundCalf': ramp.visible = true; calfState.mode = 'follow'; E.sfx.place(); E.audio.bird('calf', { far: 0.15 }); [4, 6, 9].forEach((n, i) => E.sfx.pluck(n, { vol: 0.05, delay: 0.5 + i * 0.18 })); for (const m of calf.children) m.traverse((o) => { if (o.isMesh) o.userData.item = 'calf'; }); calf.traverse((o) => { if (o.isMesh) o.userData.item = 'calf'; });
         anims.push({ t: 0, dur: 0.8, f: (k) => { calf.position.y = -0.1 + Math.sin(k * Math.PI) * 0.6 + k * 0.16; } }); trailPts.length = 0; break;
       case 'calfStay': calfState.mode = 'stay'; calfState.stayAt = P(S.calf).clone(); click(); bubble(calf, 'stone', { offset: 1.4 }); if (S.calf === 'B_bank') { setTimeout(lowerBridge, 500); } break;
       case 'calfFollow': { const was = calfState.stayAt; calfState.mode = 'follow'; click(); bubble(calf, 'heart', { offset: 1.4 }); if (was && was.distanceTo(P('B_bank')) < 0.5) setTimeout(raiseBridge, 300);
         if (was && was.distanceTo(P('B_bank')) < 0.5 && S.player === 'R_far') { calfState.wade = { t: 0, from: was.clone(), to: P('R_far').add(new THREE.Vector3(-0.8, 0, 0.8)) }; label('The calf splashes happily across the river to you.', 3200); } trailPts.length = 0; break; }
       case 'calfCantReach': bump(); break;
-      case 'gotBranch': { const b = branches[+what[2]]; b.visible = false; bell(620 + S.branches * 80); if (S.branches >= 3) setTimeout(() => label('That’s three branches: enough for a ramp. Back to the calf’s gully!', 4200), 2000); break; }
+      case 'gotBranch': { const b = branches[+what[2]]; b.visible = false; E.sfx.found(S.branches); E.sfx.flutter(4); if (S.branches >= 3) setTimeout(() => label('That’s three branches: enough for a ramp. Back to the calf’s gully!', 4200), 2000); break; }
       case 'needRamp': bubble(calf, 'branch', { count: 3, filled: S.branches, offset: 1.3 }); bump(); break;
       case 'poolNoCalf': bubble(rockPool, 'calf', { offset: 1.2 }); break;
-      case 'drank': { const tr = calf.userData.trunk; anims.push({ t: 0, dur: 2.4, lin: true, f: (k) => (tr.rotation.x = -0.4 + Math.sin(k * Math.PI * 4) * 0.4) }); bubble(calf, 'heart', { offset: 1.4 }); bell(880); break; }
+      case 'drank': { const tr = calf.userData.trunk; anims.push({ t: 0, dur: 2.4, lin: true, f: (k) => (tr.rotation.x = -0.4 + Math.sin(k * Math.PI * 4) * 0.4) }); bubble(calf, 'heart', { offset: 1.4 }); E.sfx.splash(0.6); setTimeout(() => E.sfx.splash(0.4), 900); setTimeout(() => E.audio.bird('calf', { far: 0.2 }), 1800); break; }
       case 'needNotes': bubble(girl, 'note', { count: 3, filled: S.notes, offset: 2.1 }); bump(); break;
       case 'herdNoCalf': bump(); break;
       case 'wrongHerd': { const h = herds[what]; h.out[0].userData.alarm = 1.4; bump(); grind(0.6); break; }
-      case 'win': reunite(); E.win(); break;
+      case 'win': reunite(); E.win(); setTimeout(() => (sunset = true), 4000); break;
     }
   }
-  function lowerBridge() { grind(1.2); const r0 = bridgePivot.rotation.z; anims.push({ t: 0, dur: 1.4, f: (k) => (bridgePivot.rotation.z = r0 + (BR_DOWN - r0) * k) }); const s0 = lever.userData.st.position.y; anims.push({ t: 0, dur: 0.4, f: (k) => (lever.userData.st.position.y = s0 - 0.06 * k) });
+  function lowerBridge() { grind(1.2); E.sfx.lever(); const r0 = bridgePivot.rotation.z; anims.push({ t: 0, dur: 1.4, f: (k) => (bridgePivot.rotation.z = r0 + (BR_DOWN - r0) * k) }); const s0 = lever.userData.st.position.y; anims.push({ t: 0, dur: 0.4, f: (k) => (lever.userData.st.position.y = s0 - 0.06 * k) });
     label('The calf’s weight presses the lever stone down, and the old bridge creaks down across the river.', 4800); E.progress(); }
   function raiseBridge() { grind(1.0); const r0 = bridgePivot.rotation.z; anims.push({ t: 0, dur: 1.2, f: (k) => (bridgePivot.rotation.z = r0 + (BR_UP - r0) * k) }); const s0 = lever.userData.st.position.y; anims.push({ t: 0, dur: 0.4, f: (k) => (lever.userData.st.position.y = s0 + (0.06 - 0.0) * k) }); }
   function reunite() {
@@ -408,21 +433,25 @@ function build(E) {
     E.playAction('wave', { speed: 1 });
   }
   function trumpet() { if (!E.AC) return; const AC = E.AC; const t = AC.currentTime; const o = AC.createOscillator(), g = AC.createGain(); o.type = 'sawtooth'; o.frequency.setValueAtTime(520, t); o.frequency.linearRampToValueAtTime(760, t + 0.25); o.frequency.linearRampToValueAtTime(600, t + 0.9);
-    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.12, t + 0.08); g.gain.linearRampToValueAtTime(0, t + 1.0); const f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1400; o.connect(f).connect(g).connect(AC.destination); o.start(t); o.stop(t + 1.05); }
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.04, t + 0.08); g.gain.linearRampToValueAtTime(0, t + 1.0); const f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1400; o.connect(f).connect(g); E.audio.out(g, { far: 0.45 }); o.start(t); o.stop(t + 1.05); setTimeout(() => E.audio.bird('calf', { far: 0.3, pan: 0.2 }), 700); }
   function tapHidden(k) { const r = L.tap(S, k); if (!r) return; E.progress();
-    if (r === 'leaf') { leaf.visible = false; bell(988); bell(1318, 0.15); label('<em>Puskola</em> · an ola-leaf page, left in the ranger’s tent'); E.refresh(); return; }
-    const i = +k[1]; notes[i].visible = false; bell(780 + S.notes * 90); label('Sighting slip: ' + NOTE_TEXT[i], 5200); updateNotes(); E.refresh(); }
+    if (r === 'leaf') { leaf.visible = false; E.sfx.found(4); label('<em>Puskola</em> · an ola-leaf page, left in the ranger’s tent'); E.refresh(); return; }
+    if (r === 'branch') { const b = branches[+k[1]], from = b.position.clone(); E.sfx.found(S.branches); E.sfx.flutter(4);
+      anims.push({ t: 0, dur: 1.0, f: (e) => { b.position.lerpVectors(from, girl.position, e); b.position.y = from.y + Math.sin(e * Math.PI) * 2.2; b.scale.setScalar(Math.max(0.05, 1 - e * 0.9)); }, done: () => { b.visible = false; E.refresh(); } });
+      label(S.branches >= 3 ? 'That’s three branches: enough for a ramp. Back to the calf’s gully!' : `A fallen branch for the ramp (${S.branches}/3)`, 3600); E.refresh(); return; }
+    const i = +k[1]; notes[i].visible = false; E.sfx.found(S.notes); E.sfx.flutter(3); label('Sighting slip: ' + NOTE_TEXT[i], 5200); updateNotes(); E.refresh(); }
   function updateNotes() { const el = $('signs'); if (!el || L.areaOf(S.player) !== 2) return;
     el.innerHTML = '<b>Sighting log</b><br>📻 North-east of the lone tree.<br>' + NOTE_TEXT.map((t, i) => (S.noteTaken[i] ? t : '<span style="opacity:.45">… (slip not found yet)</span>')).join('<br>'); }
   // listening: how many crossroads away is the calf? 3 bars = close
   const listenBtn = $('listen');
+  { const nb = $('notesBtn'), sg = $('signs'); if (nb && sg) { nb.onclick = (e) => { e.stopPropagation(); sg.classList.toggle('open'); }; sg.addEventListener('pointerdown', (e) => { e.stopPropagation(); sg.classList.remove('open'); }); } }
   function hops(from) { const p = L.findPath({ ...S, calf: null }, from, 'G_calf'); return p ? p.length - 1 : 9; }
   listenBtn.onclick = (ev) => { ev.stopPropagation(); if (S.calf) return; const h = hops(S.player); const bars = h <= 1 ? 3 : h <= 3 ? 2 : 1;
     listenBtn.querySelectorAll('i').forEach((b, k) => b.classList.toggle('lit', k < bars));
-    if (E.AC) { const AC = E.AC; const t0 = AC.currentTime; const vol = [0, 0.02, 0.05, 0.1][bars]; for (let n = 0; n < 2; n++) { const o = AC.createOscillator(), g = AC.createGain(); o.type = 'sawtooth'; const t = t0 + n * 0.6; o.frequency.setValueAtTime(700, t); o.frequency.linearRampToValueAtTime(900, t + 0.2); o.frequency.linearRampToValueAtTime(760, t + 0.45);
-      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.05); g.gain.linearRampToValueAtTime(0, t + 0.5); const f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 900 + bars * 400; o.connect(f).connect(g).connect(AC.destination); o.start(t); o.stop(t + 0.55); } }
+    if (E.AC) { const AC = E.AC; const t0 = AC.currentTime; const vol = [0, 0.007, 0.017, 0.035][bars]; for (let n = 0; n < 2; n++) { const o = AC.createOscillator(), g = AC.createGain(); o.type = 'sawtooth'; const t = t0 + n * 0.6; o.frequency.setValueAtTime(700, t); o.frequency.linearRampToValueAtTime(900, t + 0.2); o.frequency.linearRampToValueAtTime(760, t + 0.45);
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.05); g.gain.linearRampToValueAtTime(0, t + 0.5); const f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 900 + bars * 400; o.connect(f).connect(g); E.audio.out(g, { far: [0, 0.7, 0.45, 0.2][bars] }); o.start(t); o.stop(t + 0.55); } }
     label(['', 'A faint, faraway squeal… the calf is a long way off.', 'A clearer squeal. You’re getting closer.', 'A loud, frightened squeal, very close now!'][bars], 3000); };
-  const actionFor = { br0: () => 'pickup', br1: () => 'pickup', br2: () => 'pickup', calfFind: () => !S.calf && S.branches >= 3 && 'place', herd1: () => S.calf === 'follow' && 'place', herd2: () => S.calf === 'follow' && 'place', herd3: () => S.calf === 'follow' && 'place' };
+  const actionFor = { calfFind: () => !S.calf && S.branches >= 3 && 'place', herd1: () => S.calf === 'follow' && 'place', herd2: () => S.calf === 'follow' && 'place', herd3: () => S.calf === 'follow' && 'place' };
   function unreachable(what) { if (what === 'calfFind') label('Follow the trail to find the calf. Read the signs at each crossroads.', 3600); }
   function onNothing() {}
   function hintTarget() {
@@ -432,8 +461,9 @@ function build(E) {
     if (L.areaOf(S.player) === 2 && S.notes < 3) { const n = notes.find((x) => x.visible); return { obj: n, words: ['The rangers left sighting slips around the camp and the plain. Look by the tents, the lone tree and the track posts.'] }; }
     if (!S.calf) { // next correct crossroads on the trail
       const i = TRAIL.indexOf(S.player); const nxt = i >= 0 ? TRAIL[i + 1] : TRAIL[0];
-      const obj = clue.children.find((c) => c.position.distanceTo(P(nxt)) < 3.2 && c.position.distanceTo(P(i >= 0 ? TRAIL[i] : 'J02')) < 3.2) || clue.children[0];
-      return { obj: i >= 0 ? obj : clue.children[0], words: [i >= 0 ? 'Look at the prints leaving this crossroads: small, fresh, toes pointing away.' : 'Head back to the crossroads where the small prints were.'] };
+      const obj = i >= 0 && !HARD.includes(i) ? clue.children.find((c) => c.position.distanceTo(P(nxt)) < 3.2 && c.position.distanceTo(P(TRAIL[i])) < 3.2) : null;
+      if (i >= 0 && !obj) return { obj: girl, words: ['The ground is baked hard here: no prints. Press Listen, then try each way out and listen again.'] };
+      return { obj: obj || clue.children[0], words: [i >= 0 ? 'Look at the prints leaving this crossroads: small, alone, toes pointing away.' : 'Head back to the crossroads where the small prints were.'] };
     }
     if (L.areaOf(S.player) === 1 && S.player !== 'R_far') {
       if (!L.bridgeDown(S)) return { obj: lever, words: ['The lever stone by the river needs real weight. Lead the calf onto it and tell it to stay (tap the calf).'] };
@@ -449,7 +479,7 @@ function build(E) {
   const tod = { k: 0 }; let notesShown = false; const started = () => document.getElementById('intro').classList.contains('hide');
   function focus() { let f = L.areaOf(S.player) === 2 ? 1 : 0; if (riding) { const d = roadB.clone().sub(roadA); f = THREE.MathUtils.clamp(girl.position.clone().sub(roadA).dot(d) / d.lengthSq(), 0, 1); }
     if (S.player === 'R_far' && !riding) f = 0.15; const k = f * f * (3 - 2 * f);
-    return { target: new THREE.Vector3(1.5, 1.2, -1).lerp(A2.clone().add(new THREE.Vector3(0, 1.2, -1.5)), k), zoom: 1, k }; }
+    return { target: new THREE.Vector3(1.5, 1.2, -1).lerp(A2.clone().add(new THREE.Vector3(0, 1.2, -1.5)), k), zoom: 1, k, pz: 1.12 }; }
   const skyA = { sun: new THREE.Color(0xfff2dc), hemi: new THREE.Color(0xfff3e8), fog: new THREE.Color(0xf3e6cc) };
   const skyB = { sun: new THREE.Color(0xffb070), hemi: new THREE.Color(0xf0c8a0), fog: new THREE.Color(0xf0c8a0) };
   const skyC = { sun: new THREE.Color(0xc87a8a), hemi: new THREE.Color(0x9a7aa8), fog: new THREE.Color(0x8a6a8a) };
@@ -493,6 +523,6 @@ function build(E) {
     sun.color.copy(skyA.sun).lerp(skyB.sun, kk).lerp(skyC.sun, k2); hemi.color.copy(skyA.hemi).lerp(skyB.hemi, kk).lerp(skyC.hemi, k2); scene.fog.color.copy(skyA.fog).lerp(skyB.fog, kk).lerp(skyC.fog, k2);
     sun.intensity = 2.2 - k2 * 1.0; hemi.intensity = 1.5 - k2 * 0.5;
   }
-  return { nodePos, surfaceTarget, edgePoints, onEdgeStart, onArrive, onResult, tapHidden, actionFor, items, unreachable, onNothing, hintTarget, inventory, focus, tick, MSG, tod,
+  return { sound, surfaceAt, nodePos, surfaceTarget, edgePoints, onEdgeStart, onArrive, onResult, tapHidden, actionFor, items, unreachable, onNothing, hintTarget, inventory, focus, tick, MSG, tod,
     reachCap: { calfFind: 0.6, herd1: 1.0, herd2: 1.0, herd3: 1.0 } };
 }

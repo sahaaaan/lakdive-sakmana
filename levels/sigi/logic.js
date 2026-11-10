@@ -75,7 +75,7 @@ function tileConn(s, key, start, startSide, end, endSide) {
 }
 export const waterLinked = (s) => tileConn(s, 'chan', [2, 0], 2, [0, 2], 8);   // cistern (east of the top-right terrace) to the outlet (west of the bottom-left)
 export const waterFlows = (s) => s.sluice && waterLinked(s);
-export const FLOWER_ORDER = [2, 1, 0]; // offer them as the maidens stand along the wall, from the lion end (west) to the sunrise end (east)
+export const FLOWER_ORDER = [0, 1, 2]; // offer them as the maidens stand along the wall, starting with the one nearest the Lion Rock (east: jasmine, lotus, then lily)
 
 // the stair from the gallery gate round the west end of the rock, behind it, and up to the lion platform
 export const CLIMB2 = [a2(-8.4, 0.6, 0.2), a2(-9.6, 1.6, -2.6), a2(-10.2, 2.8, -8.0), a2(-9.2, 3.6, -12.6), V3(15.0, 9.8, -29.4), V3(22.0, 11.0, -30.6), V3(26.4, 11.8, -29.6)];
@@ -117,7 +117,7 @@ export function edges(s) {
   // Lion Gate and summit
   line('LION', 'ST1', { kind: 'stair' });
   // the iron stair winds up the rock: along the south face, round the corner, up the east face, then zigzags back to the top
-  line('ST1', 'ST2', { kind: 'hornet', via: [a3(3.0, 2.3, -3.3), a3(5.3, 3.0, -4.7), a3(6.3, 3.8, -7.4)] }); line('ST2', 'SUM_IN', { kind: 'hornet', via: [a3(6.7, 5.6, -7.2), a3(5.9, 6.5, -4.9), a3(4.3, 7, -5.9)] }); line('SUM_IN', 'CIS');
+  line('ST1', 'ST2', { kind: 'hornet', speed: 3.4, via: [a3(3.0, 2.3, -3.3), a3(5.3, 3.0, -4.7), a3(6.3, 3.8, -7.4)] }); line('ST2', 'SUM_IN', { kind: 'hornet', speed: 3.4, via: [a3(6.7, 5.6, -7.2), a3(5.9, 6.5, -4.9), a3(4.3, 7, -5.9)] }); line('SUM_IN', 'CIS');
   if (tileAt(s, 1, 2).path & 4) line('SUM_IN', tileId(1, 2), { kind: 'tile' });
   for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) for (const [dx, dy, a, b] of DIRS.slice(1, 3)) { const ni = i + dx, nj = j + dy; if (ni > 2 || nj > 2) continue;
     if ((tileAt(s, i, j).path & a) && (tileAt(s, ni, nj).path & b)) line(tileId(i, j), tileId(ni, nj), { kind: 'tile' }); }
@@ -181,7 +181,7 @@ export function objective(s) {
     const walk = !!findPath(s, 'SUM_IN', 'THRONE');
     if (!walk || !waterLinked(s)) return 'Turn the palace terraces so there is a walk to the throne AND a channel from the cistern to the outlet. (Tap a terrace to turn it; not the one you stand on.)';
     if (!s.sluice) return 'Both routes are set. Stand on the sluice stone to release the cistern.';
-    return 'The water is flowing. At the throne, offer the three flowers in the order the maidens stand along the wall, from the lion end.';
+    return 'The water is flowing. At the throne, offer the three flowers in the order the maidens stand along the wall, starting with the maiden nearest the Lion Rock.';
   }
   if (a === 2) {
     if (!s.cloth) return s.player === 'S_base' || s.player === 'S_mid' ? 'The iron stair stops short of the fresco pocket. Turn the view until the two flights line up, then climb.' : 'Fetch the painter’s cloth from the fresco pocket.';

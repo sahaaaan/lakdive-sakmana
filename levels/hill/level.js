@@ -1,4 +1,4 @@
-// Chapter IV: Hill Country, "The First Flush". Scene, story beats, hints. Rules live in logic.js.
+// Chapter IV: Ella, "The First Flush". Scene, story beats, hints. Rules live in logic.js.
 import * as L from './logic.js';
 import HERO_GLB from './heroine.js';
 
@@ -27,7 +27,7 @@ body.hill.won{--sky-top:#3d3a6a;--sky-mid:#d0789a;--sky-bot:#f3a85a}
 #panel.on{display:block}#panel b.h{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
 #panel .bar{display:inline-block;height:8px;border-radius:4px;background:#5fa9d0;vertical-align:middle;margin-left:4px}
 #panel .ok{color:#2f8a4a;font-weight:700}#panel .no{color:#b8432f;font-weight:700}
-@media (max-width:600px){#panel{max-width:60vw;font-size:12px}}
+@media (max-width:600px), (max-height:500px){#panel{max-width:60vw;font-size:12px}}
 #sbox{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:8;width:min(760px,96vw);padding:12px 14px;display:none;font-size:13.5px;line-height:1.45}
 #sbox.on{display:block}#sbox h4{margin:0 0 6px;font:600 12px Nunito Sans,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
 #sbox .row{display:flex;gap:12px;align-items:stretch;flex-wrap:wrap}#sbox img{width:300px;max-width:100%;border-radius:8px;border:1px solid rgba(0,0,0,.1)}
@@ -38,12 +38,12 @@ body.hill.won{--sky-top:#3d3a6a;--sky-mid:#d0789a;--sky-bot:#f3a85a}
 #sbox .knob{width:18px;height:18px;border-radius:50%;background:#e8e0cc;margin-bottom:-8px;position:relative;z-index:1}
 #sbox .num{font-size:18px;font-weight:800}#sbox .st{font-size:11.5px;font-weight:700}#sbox .why{font-size:11px;color:#b8432f;font-weight:600;min-height:28px;text-align:center}
 #sbox .goal{margin-top:8px;padding:8px 10px;border-radius:10px;background:#eef6ea;font-weight:600}#sbox .rules{margin:6px 0 0;padding-left:18px;color:var(--ink-soft);font-size:12.5px}
-@media (max-width:600px){#sbox img{width:100%}#sbox .rules{display:none}}`;
+@media (max-width:600px), (max-height:500px){#sbox img{width:100%}#sbox .rules{display:none}}`;
 
 export default {
   heroGlb: HERO_GLB, slots: SLOTS, icons: ICONS, logic: L,
   meta: {
-    chapter: 'IV', place: 'Hill Country', title: 'The First Flush', tagline: 'From the tea bush to the Colombo train.', bodyClass: 'hill', css: CSS,
+    chapter: 'IV', place: 'Ella', title: 'The First Flush', tagline: 'From the tea bush to the Colombo train.', bodyClass: 'hill', css: CSS,
     intro: 'It’s first-flush season on an old tea estate above the clouds. The year’s finest tea has to be picked, weighed, made and blended, then put on this afternoon’s blue train to the Colombo tea auction. Help it every step of the way.',
     howto: ['<b>Look closely:</b> only perfect shoots (two leaves and a bud) are first flush.', '<b>Work it out:</b> weights, water flows, the order tea is made, the broker’s recipe, the timetable and the signal levers. The panel at the bottom left shows the numbers.', '<b>Switch things back</b> any time: gates, sacks, machines and levers all work both ways.'],
     startLabel: 'Morning mist on the estate. The pluckers are out on the terraces: pick the perfect shoots, two leaves and a bud.',
@@ -248,7 +248,7 @@ function build(E) {
   const platChests = new THREE.Group(); platChests.visible = false; platChests.position.copy(a2(-7.2, trackZ + 1.4, 0.36)); scene.add(platChests);
   for (let i = 0; i < 9; i++) { const c = mesh(new THREE.BoxGeometry(0.36, 0.32, 0.36), mat(0xa8744a)); c.position.set((i % 5) * 0.4 - 0.8, 0.16 + (i >= 5 ? 0.32 : 0), 0); platChests.add(c); }
   // guard's flag at the halt (the finale)
-  const flagPole = new THREE.Group(); flagPole.position.copy(P('H')).add(new THREE.Vector3(0.9, -0.06, 0.6)); scene.add(flagPole);
+  const flagPole = new THREE.Group(); flagPole.position.copy(P('H')).add(new THREE.Vector3(0.2, -0.06, -1.0)); scene.add(flagPole); // on the platform, clear of the timetable board
   { const p = mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.6, 6), mat(0x6e4a30)); p.position.y = 0.8; flagPole.add(p); const f = mesh(new THREE.BoxGeometry(0.02, 0.4, 0.6), mat(0x2f8a4a)); f.position.set(0, 1.4, 0.3); flagPole.add(f); const bc = beacon(0xffd27a, 2.4); flagPole.add(bc); flagPole.userData.beacon = bc; }
   tag(flagPole, { item: 'flag' }); items.flag = flagPole;
   // the gate, gatekeeper, timetable board, station clock and three answer clocks
@@ -395,11 +395,29 @@ function build(E) {
     return false;
   }
   let riding = false;
-  function onEdgeStart(e) { if (e.kind === 'lorry') { riding = true; bell(440); label('The estate lorry grinds down the hairpins to the Nine Arch halt with nine chests of first flush.', 4200); } }
+  /* ---------- sound ---------- */
+  function trainSound(v, dur) { if (!E.AC) return; const A = E.audio; // diesel rumble, wheels over rail joints, a whistle that echoes down the valley
+    A.motor({ f: 42, f2: 38, rate: 9, dur, vol: 0.04 * v, attack: dur * 0.3, release: dur * 0.35, lp: 380, bus: 'sfx', far: 0.35, pan: [-0.5, 0.4] });
+    for (let k = 0.6; k < dur - 1; k += 0.9) [0, 0.13].forEach((d) => A.hiss(A.now(k + d), 0.05, { type: 'lowpass', f: 900, vol: 0.05 * v, far: 0.35 }));
+    A.bird('whistle', { bus: 'sfx', f: 620, far: 0.65, vol: 2 * v, pan: -0.3 }); }
+  function sound(A) { // misty tea hills: soft drizzle, a stream, whistling thrushes; at the viaduct wind, the waterfall and far trains
+    A.loop({ color: 'white', type: 'highpass', f: 3000, q: 0.3, vol: 0.004, lfo: [0.04, 0.5] }); // drizzle on leaves
+    const stream = A.loop({ color: 'pink', f: 900, q: 0.9, vol: 0.012, lfo: [0.5, 0.25], pan: -0.3 });
+    const wind = A.loop({ color: 'pink', f: 380, q: 0.4, vol: 0.015, lfo: [0.05, 0.6] });
+    const falls = A.loop({ color: 'pink', f: 1200, q: 0.4, vol: 0, pan: 0.4 });
+    const area = () => L.areaOf(S.player);
+    A.every([8, 16], () => { const f = A.rnd(1500, 1900); [0, 0.25, 0.55].forEach((d, i) => A.osc('sine', f * [1, 1.2, 0.9][i], A.now(d), 0.22, { bus: 'amb', to: f * [1.2, 1.35, 1.05][i], vol: 0.016, a: 0.03, far: 0.55, pan: A.rnd(-0.6, 0.6) })); }, 5);
+    A.every([3, 8], () => A.bird('chirp', { vol: 0.7 }), 2);
+    A.every([35, 60], () => A.bird('whistle', { f: A.rnd(560, 700), far: 0.95, vol: 0.7, pan: A.rnd(-0.8, 0.8) }), 25);
+    return { update() { const a2 = area() === 2; stream.to(a2 ? 0.004 : 0.012); wind.to(a2 ? 0.026 : 0.012); falls.to(a2 ? 0.014 : 0); } };
+  }
+  function surfaceAt(pos, cur) { const e = cur && cur.e; if (e && (e.kind === 'viaduct')) return 'stone'; if (e && e.kind === 'spray') return 'water';
+    const ids = cur ? [cur.from, cur.to] : []; if (ids.some((i) => i && /^(F_|SB|H$)/.test(i))) return 'wood'; return 'grass'; }
+  function onEdgeStart(e) { if (e.kind === 'lorry') { riding = true; E.audio.ctx && E.audio.motor({ f: 48, f2: 56, rate: 11, dur: 7, vol: 0.05, attack: 0.8, release: 1.6, lp: 480, bus: 'sfx', far: 0.15, depth: 0.35 }); label('The estate lorry grinds down the hairpins to the Nine Arch halt with nine chests of first flush.', 4200); } }
   function onArrive(node, e, stop) {
     if (e && e.kind === 'lorry') { riding = false; if (node === 'L_drop') { platChests.visible = true; lorry.userData.load.visible = false; setTimeout(() => label('The chests are stacked on the platform. But the signal box is across the bridge, and the gatekeeper has questions.', 5200), 600); } }
     const ev = stop ? L.stepOn(S, node) : null;
-    if (ev) { click(); ropeT.target = ev.on ? 1 : 0; grind(1.2); const p0 = cw.userData.plat.position.y; anims.push({ t: 0, dur: 0.4, f: (k) => (cw.userData.plat.position.y = p0 + ((ev.on ? -0.1 : 0.06) - p0) * k) });
+    if (ev) { E.sfx.thunk(); ropeT.target = ev.on ? 1 : 0; E.sfx.wheel(12, 0.11); E.sfx.whoosh(1.4); const p0 = cw.userData.plat.position.y; anims.push({ t: 0, dur: 0.4, f: (k) => (cw.userData.plat.position.y = p0 + ((ev.on ? -0.1 : 0.06) - p0) * k) });
       label(ev.sent ? 'Your weight drops the platform; the counterweight rises and the sack of leaf flies down the wire to the factory!' : ev.on ? 'The platform sinks and the empty hook runs down the wire.' : 'You step on again and the hook runs back up the wire.', 4600); }
     refreshPanel();
   }
@@ -433,7 +451,7 @@ function build(E) {
     switch (r) {
       case 'balanced': bell(880); sparkle(scale, 3); setTimeout(() => { sacks.forEach((s, i) => { if (S.pan[i]) s.visible = false; }); basket.visible = false; leafSack.visible = false; }, 1200); setTimeout(() => label('Now hang it on the ropeway at the tower.', 3000), 4000); break;
       case 'panNoBasket': bubble(scale, 'shoot', { count: 6, filled: S.shoots, offset: 1.0 }); break;
-      case 'hooked': leafSack.visible = true; bell(660); break;
+      case 'hooked': leafSack.visible = true; E.sfx.place(); break;
       case 'hookEmpty': bubble(hookPost, 'sack', { offset: 2.6 }); bump(); break;
       case 'gate': case 'gatePower': { const i = +what[1] - 1; const w = gates[i].userData.wheel; const z0 = w.rotation.z; anims.push({ t: 0, dur: 0.5, f: (k) => (w.rotation.z = z0 - k * Math.PI) }); grind(0.5); setGate(i); E.stats.turns++; if (r === 'gatePower') bell(784); break; }
       case 'stage': { const i = +what[2]; setStation(i); click(); break; }
@@ -448,13 +466,13 @@ function build(E) {
       case 'wrongTime': bubble(keeper, 'clock', { offset: 2.1 }); bump(); break;
       case 'gateOpen': bell(660); anims.push({ t: 0, dur: 0.8, f: (k) => (gateBar.rotation.x = -k * 1.4) }); break;
       case 'locked': bubble(items[what], 'lock', { offset: 1.6 }); bump(); break;
-      case 'lever': case 'localIn': case 'expressIn': case 'standoff': setLevers(); click(); E.stats.turns++;
-        if (r === 'localIn') { TR.local.goal = 'loop'; bell(523); }
-        if (r === 'expressIn') { express.visible = true; TR.express.x = -22; TR.express.goal = 'platform'; bell(659); setTimeout(() => { platChests.visible = false; }, 5200); }
+      case 'lever': case 'localIn': case 'expressIn': case 'standoff': setLevers(); E.sfx.lever(); E.stats.turns++;
+        if (r === 'localIn') { TR.local.goal = 'loop'; trainSound(0.8, 7); }
+        if (r === 'expressIn') { express.visible = true; TR.express.x = -22; TR.express.goal = 'platform'; trainSound(1, 7); setTimeout(() => { platChests.visible = false; }, 5200); }
         if (r === 'standoff') { express.visible = true; TR.express.x = -22; TR.express.goal = 'standoff'; E.shake(0.2); }
         break;
       case 'flagNoTrain': bump(); break;
-      case 'leaf': leaf.visible = false; bell(988); bell(1318, 0.15); E.refresh(); break;
+      case 'leaf': leaf.visible = false; E.sfx.found(4); E.refresh(); break;
       case 'win': finale(); E.win(); break;
     }
     refreshPanel();
@@ -471,7 +489,7 @@ function build(E) {
   function tapHidden(k) {
     if (k[0] === 'x') { label(k === 'xone' ? 'Only one leaf on this shoot: not quite. First flush is two leaves and a bud.' : 'Big, dark, leathery leaves: that’s old coarse leaf, not the first flush.', 3200); bump(); return; }
     const r = L.tap(S, k); if (!r) return; E.progress(); const i = +k[1]; const s = shoots[i];
-    bell(700 + S.shoots * 70); label(`Two leaves and a bud: perfect (${S.shoots}/6)`, 1800);
+    E.sfx.found(S.shoots - 1); label(`Two leaves and a bud: perfect (${S.shoots}/6)`, 1800);
     const from = s.position.clone(); anims.push({ t: 0, dur: 0.8, f: (e) => { const to = girl.userData.orbit.getWorldPosition(new THREE.Vector3()); s.position.lerpVectors(from, to, e); s.position.y += Math.sin(e * Math.PI) * 0.8; s.scale.setScalar(1.6 - e); },
       done: () => { s.visible = false; if (S.shoots >= 6) { girl.userData.orbit.clear(); label('Six perfect shoots: the first-flush basket is full (2 kg). Take it to the weighing shed on the top terrace.', 4800); } else { const mini = shoot('perfect'); mini.scale.setScalar(0.6); girl.userData.orbit.add(mini); } E.refresh(); refreshPanel(); } });
   }
@@ -501,7 +519,7 @@ function build(E) {
   /* ---------- camera, time, motion ---------- */
   const tod = { k: 0 }; let clock2 = 0;
   function focus() { let f = L.areaOf(S.player) === 2 ? 1 : 0; if (riding) { const d = roadB.clone().sub(roadA); f = THREE.MathUtils.clamp(girl.position.clone().sub(roadA).dot(d) / d.lengthSq(), 0, 1); }
-    const k = f * f * (3 - 2 * f); return { target: new THREE.Vector3(0.5, 1.6, 0).lerp(A2.clone().add(new THREE.Vector3(0, 1.2, 0)), k), zoom: 1, k }; }
+    const k = f * f * (3 - 2 * f); return { target: new THREE.Vector3(0.5, 1.6, 0).lerp(A2.clone().add(new THREE.Vector3(0, 1.2, 0)), k), zoom: 1 - 0.08 * k, k, pz: 1.02 - 0.18 * k }; }
   const skyA = { sun: new THREE.Color(0xf4f2ea), hemi: new THREE.Color(0xeef2ee), fog: new THREE.Color(0xe6ece4) };
   const skyB = { sun: new THREE.Color(0xffc890), hemi: new THREE.Color(0xf3dcc0), fog: new THREE.Color(0xf0dcc0) };
   const skyC = { sun: new THREE.Color(0xd08080), hemi: new THREE.Color(0xa080a8), fog: new THREE.Color(0x9a7a9a) };
@@ -558,6 +576,6 @@ function build(E) {
     sun.color.copy(skyA.sun).lerp(skyB.sun, kk).lerp(skyC.sun, k2); hemi.color.copy(skyA.hemi).lerp(skyB.hemi, kk).lerp(skyC.hemi, k2); scene.fog.color.copy(skyA.fog).lerp(skyB.fog, kk).lerp(skyC.fog, k2); sun.intensity = 2.2 - k2 * 1.0;
     refreshPanel(); refreshSbox();
   }
-  return { nodePos, surfaceTarget, edgePoints, holdEdge, onEdgeStart, onArrive, onResult, tapHidden, actionFor, items, unreachable, hintTarget, inventory, focus, tick, MSG, tod,
+  return { sound, surfaceAt, nodePos, surfaceTarget, edgePoints, holdEdge, onEdgeStart, onArrive, onResult, tapHidden, actionFor, items, unreachable, hintTarget, inventory, focus, tick, MSG, tod,
     reachCap: { hook: 1.4, run: 1.0, seal: 1.0, flag: 1.2, L1: 1.0, L2: 1.0, L3: 1.0, L4: 1.0, g1: 1.1, g2: 1.1, g3: 1.1, tA: 1.2, tB: 1.2, tC: 1.2 } };
 }

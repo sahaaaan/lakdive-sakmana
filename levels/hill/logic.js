@@ -1,4 +1,4 @@
-// Chapter IV: Hill Country, "The First Flush". Pure level logic, shared with the solver.
+// Chapter IV: Ella, "The First Flush". Pure level logic, shared with the solver.
 // Area 1, the tea estate (misty morning): perfect shoots, moving mist, the weighing shed, the ropeway (stand-on),
 //   water gates to power the factory wheel, the factory machines in the right order, blending the auction chests.
 // Area 2, Nine Arch Bridge (afternoon): the timetable question at the bridge gate, the interlocking lever frame,

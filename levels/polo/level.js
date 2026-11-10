@@ -36,7 +36,8 @@ export default {
 function build(E) {
   const { THREE, S, scene, cam, sun, hemi, mat, mesh, polar, deg, tag, hash, canvasTex, bubble, sparkle, jiggle, hold, label, bell, grind, click, bump, anims, girl, $ } = E;
   const rattle = () => { const AC = E.AC; if (!AC) return; const t = AC.currentTime; for (let i = 0; i < 4; i++) E.tone(120 + i * 15, t + i * 0.07, 0.06, 'square', 0.05); };
-  const chatter = () => { const AC = E.AC; if (!AC) return; const t = AC.currentTime; for (let i = 0; i < 5; i++) E.tone(900 + Math.random() * 500, t + i * 0.08, 0.06, 'sawtooth', 0.04, 600); };
+  const chatter = () => E.sfx.monkey();
+  const fx = () => E.sfx; // sound effects (the engine's sound kit exists once sound starts)
 
 const PAL = {
   granite: 0xbcb3a6, graniteLight: 0xd6cfc4, graniteDark: 0x938a7f,
@@ -602,7 +603,7 @@ const causeway = [];
 }
 function onPlate(ev) {
   if (ev.k === 'boStair') {
-    E.progress(); click(); bell(ev.on ? 392 : 330);
+    E.progress(); fx().thunk(); fx().pluck(ev.on ? 2 : 0, { vol: 0.06 });
     const y0 = islePlate.position.y, y1 = P('P_islet').y + 0.02 - (ev.on ? 0.05 : 0); anims.push({ t: 0, dur: 0.35, f: (e) => (islePlate.position.y = y0 + (y1 - y0) * e) });
     islePlate.userData.glow.material.color.setHex(ev.on ? 0xfff2c8 : 0xffe2a0);
     const z0 = boStairGroup.scale.z, z1 = ev.on ? 1 : 0.03;
@@ -612,7 +613,7 @@ function onPlate(ev) {
   }
 }
 function raiseCauseway() {
-  causeway.forEach((s, i) => setTimeout(() => { s.visible = true; const y0 = -9; anims.push({ t: 0, dur: 1.1, f: (e) => (s.position.y = y0 + (s.userData.home - y0) * e) }); grind(0.5); }, 300 + i * 260));
+  causeway.forEach((s, i) => setTimeout(() => { s.visible = true; const y0 = -9; anims.push({ t: 0, dur: 1.1, f: (e) => (s.position.y = y0 + (s.userData.home - y0) * e) }); fx().whoosh(0.6); fx().pluck(i, { vol: 0.05, far: 0.35, delay: 0.9 }); }, 300 + i * 260));
 }
 // --- five scattered flag pennants (hidden objects); two are caught in the bo tree until she climbs up to it
 const LATE_FLAGS = [0, 3];
@@ -627,7 +628,7 @@ const flagBits = [];
   });
 }
 function dropFlags() {
-  E.progress(); bell(784); bell(988, 0.25);
+  E.progress(); fx().flutter(10); fx().found(2);
   label('A breeze stirs the bo tree. Two flags caught in its branches come loose and drift down across the grounds.', 5200);
   LATE_FLAGS.forEach((i, n) => {
     const f = flagBits[i], to = f.userData.base.clone(), from = boC.clone().setY(3.4).add(polar(0.6, deg(90 + n * 180), 0));
@@ -640,7 +641,7 @@ function dropFlags() {
 }
 function collectFlag(i) {
   const f = flagBits[i]; if (!f || f.userData.taken) return;
-  f.userData.taken = true; S.flags++; E.progress(); bell(700 + S.flags * 70);
+  f.userData.taken = true; S.flags++; E.progress(); fx().found(S.flags - 1);
   const from = f.getWorldPosition(new THREE.Vector3()); f.parent.remove(f); scene.add(f); f.position.copy(from);
   anims.push({ t: 0, dur: 0.9, f: (e) => { const to = girl.userData.orbit.getWorldPosition(new THREE.Vector3()); f.position.lerpVectors(from, to, e); f.position.y += Math.sin(e * Math.PI) * 1.2; f.scale.setScalar(1 - e * 0.5); }, done: () => { scene.remove(f); const mini = f.clone(); mini.scale.setScalar(0.55); mini.userData.isFlag = true; girl.userData.orbit.add(mini); E.refresh(); } });
   if (S.flags < 5) label(`A Buddhist flag (${S.flags}/5)`); else label('All five flags. Tie them back on the empty line by the gate.', 4200);
@@ -649,13 +650,13 @@ function collectFlag(i) {
 function hangFlags() {
   const orbit = girl.userData.orbit; [...orbit.children].filter((c) => c.userData.isFlag).forEach((c) => orbit.remove(c));
   flagString(flagPoleA.position.clone().setY(2.5), flagPoleB.position.clone().setY(2.5), 0.4, 11);
-  sparkle(flagPoleA, 2); sparkle(flagPoleB, 2); bell(880); bell(1046, 0.2);
+  sparkle(flagPoleA, 2); sparkle(flagPoleB, 2); fx().flutter(12); [5, 7, 9].forEach((n, i) => fx().pluck(n, { vol: 0.06, delay: 0.2 + i * 0.15 }));
 }
 function waterBo() {
   heldPot.visible = false;
   const fresh = [new THREE.Color(0x8fc76f), new THREE.Color(0xa6d47f)];
   boCrowns.forEach((c, i) => { const m = c.material.clone(); c.material = m; const c0 = m.color.clone(); anims.push({ t: 0, dur: 2.5, f: (e) => m.color.copy(c0).lerp(fresh[i % 2], e) }); });
-  sparkle(boTree, 4); bell(659); bell(880, 0.3); bell(1175, 0.6);
+  sparkle(boTree, 4); fx().pour(2.2); [4, 6, 8, 9].forEach((n, i) => fx().pluck(n, { vol: 0.05, delay: 1.4 + i * 0.22, far: 0.3 })); fx().bell(E.audio.note(0), { vol: 0.06, far: 0.6, dur: 4.5, delay: 2.4 });
 }
 const heldPot = new THREE.Group();
 { const prof = [[0, 0], [0.14, 0.02], [0.24, 0.14], [0.25, 0.26], [0.17, 0.38], [0.08, 0.44], [0.08, 0.52], [0.12, 0.55], [0, 0.55]].map(([x, y]) => new THREE.Vector2(x, y)); heldPot.add(mesh(new THREE.LatheGeometry(prof, 14), mat(0xb4603f))); }
@@ -796,9 +797,9 @@ function offerLotuses() {
   kids.forEach((l, i) => {
     const from = l.getWorldPosition(new THREE.Vector3()); orbit.remove(l); scene.add(l); l.position.copy(from);
     const to = sockets[i].lotus.getWorldPosition(new THREE.Vector3());
-    anims.push({ t: 0, dur: 0.9 + i * 0.15, f: (e) => { l.position.lerpVectors(from, to, e); l.position.y += Math.sin(e * Math.PI) * 0.8; }, done: () => { scene.remove(l); sockets[i].lotus.visible = true; sockets[i].glow.visible = false; bell(620 + i * 120); } });
+    anims.push({ t: 0, dur: 0.9 + i * 0.15, f: (e) => { l.position.lerpVectors(from, to, e); l.position.y += Math.sin(e * Math.PI) * 0.8; }, done: () => { scene.remove(l); sockets[i].lotus.visible = true; sockets[i].glow.visible = false; fx().place(); fx().pluck(4 + i * 2, { vol: 0.06, far: 0.3 }); } });
   });
-  setTimeout(() => { grind(1.4); E.shake(0.5); awaken('A'); }, 1400);
+  setTimeout(() => { grind(1.4); fx().bell(E.audio.note(-3), { vol: 0.06, far: 0.6, dur: 4, delay: 0.8 }); E.shake(0.5); awaken('A'); }, 1400);
 }
 function awaken(R) {
   handles[R].forEach((h) => { sparkle(h, 3); anims.push({ t: 0, dur: 1.4, f: (e) => (h.rotation.z = e * Math.PI * 2) }); });
@@ -825,7 +826,7 @@ function updateRotation(dt) {
   handles[rotating.R].forEach((h) => (h.rotation.z += dt * 6 * Math.sign(rotating.to - rotating.from)));
   if (rotating.t >= 1) { S.rot[rotating.R] = ((rotAcc[rotating.R] % SLOTS) + SLOTS) % SLOTS; rotating = null; click(); }
 }
-function unfoldStairB() { stairB.visible = true; anims.push({ t: 0, dur: 1.2, f: (e) => stairB.scale.set(1, Math.max(0.02, e), 0.3 + 0.7 * e) }); grind(1.2); setTimeout(() => awaken('B'), 900); }
+function unfoldStairB() { stairB.visible = true; anims.push({ t: 0, dur: 1.2, f: (e) => stairB.scale.set(1, Math.max(0.02, e), 0.3 + 0.7 * e) }); grind(1.2); [2, 4, 6].forEach((n, i) => fx().pluck(n, { vol: 0.05, delay: 0.3 + i * 0.3 })); setTimeout(() => awaken('B'), 900); }
 
 /* ---------- monkey ---------- */
 function monkeyHop() { const y0 = 0.55; anims.push({ t: 0, dur: 0.5, lin: true, f: (e) => (monkey.position.y = y0 + Math.sin(e * Math.PI * 2) ** 2 * 0.25) }); }
@@ -839,7 +840,7 @@ function monkeyLeave() {
 function collectLotus(idx) {
   const l = lotuses[idx]; if (!l || l.userData.taken) return;
   l.userData.taken = true; S.lotus++; E.progress();
-  bell(780 + S.lotus * 90);
+  fx().found(S.lotus + 1);
   const from = l.getWorldPosition(new THREE.Vector3()); l.parent.remove(l); scene.add(l); l.position.copy(from);
   anims.push({ t: 0, dur: 0.9, f: (e) => { const to = girl.userData.orbit.getWorldPosition(new THREE.Vector3()); l.position.lerpVectors(from, to, e); l.position.y += Math.sin(e * Math.PI) * 1.2; l.scale.setScalar(0.75 - e * 0.4); },
     done: () => { scene.remove(l); const mini = lotusFlower(0.35, false); girl.userData.orbit.add(mini); E.refresh(); } });
@@ -848,10 +849,10 @@ function collectLotus(idx) {
 let discMoved = false;
 function tapSecret(kind) {
   if (kind === 'disc' && !discMoved) {
-    discMoved = true; leaf.visible = true; click();
+    discMoved = true; leaf.visible = true; grind(0.7);
     const a = secretDisc.position.clone(), b = a.clone().add(polar(0.95, deg(67.5) + Math.PI / 2, 0));
     anims.push({ t: 0, dur: 0.8, f: (e) => secretDisc.position.lerpVectors(a, b, e) }); sparkle(leaf, 2);
-  } else if (kind === 'leaf' && !S.has.leaf) { S.has.leaf = true; leaf.visible = false; bell(988); bell(1318, 0.15); label(NAMES.leaf); E.refresh(); }
+  } else if (kind === 'leaf' && !S.has.leaf) { S.has.leaf = true; leaf.visible = false; fx().found(4); fx().bell(E.audio.note(7), { vol: 0.04, far: 0.4, delay: 0.4 }); label(NAMES.leaf); E.refresh(); }
 }
 
 /* ---------- win ---------- */
@@ -862,7 +863,7 @@ function onWin() {
   const w0 = new THREE.Color(PAL.weathered), w1 = new THREE.Color(PAL.plaster), g0 = finMat.color.clone(), g1 = new THREE.Color(PAL.gold);
   anims.push({ t: 0, dur: 3.5, f: (e) => { domeMat.color.copy(w0).lerp(w1, e); domeMat.emissive.setRGB(0.12 * e, 0.1 * e, 0.07 * e); finMat.color.copy(g0).lerp(g1, e); finMat.metalness = 0.1 + 0.4 * e; } });
   scene.traverse((o) => { if (o.userData.streak) anims.push({ t: 0, dur: 3, f: (e) => o.scale.setScalar(Math.max(0.001, 1 - e)) }); });
-  kerbLamps.forEach((l, i) => setTimeout(() => { l.userData.flame.visible = true; if (i % 4 === 0) bell(1046 + (i % 8) * 40, 0); }, 1200 + i * 110));
+  kerbLamps.forEach((l, i) => setTimeout(() => { l.userData.flame.visible = true; if (i % 4 === 0) fx().pluck(5 + ((i / 4) | 0) % 6, { vol: 0.04, far: 0.45 }); }, 1200 + i * 110));
   document.body.classList.add('golden');
   anims.push({ t: 0, dur: 3, f: (e) => { sun.color.setRGB(1, 0.94 - e * 0.14, 0.86 - e * 0.28); hemi.color.setRGB(1, 0.95 - e * 0.08, 0.91 - e * 0.18); scene.fog.color.setRGB(0.94 + e * 0.02, 0.9 - e * 0.04, 0.86 - e * 0.12); } });
   for (let i = 0; i < 3; i++) { const p = bird(0x2f6fa8, true); p.scale.setScalar(1.5); p.userData.p = { r: 8 + i * 2.5, y: 7 + i, sp: 0.35, ph: i * 2 }; scene.add(p); peacocks.push(p); }
@@ -913,20 +914,20 @@ function hintTarget() {
   function onResult(r, what) {
     if (r === 'wateredGate' || r === 'hungGate') setTimeout(() => { raiseCauseway(); setTimeout(() => label('Stone by stone, a causeway rises from the clouds towards the Stupa House.', 5000), 2600); }, 2200);
     switch (r) {
-    case 'gotLamp': items.lamp.userData.lamp.visible = false; girl.userData.lamp.visible = true; bell(660); break;
-    case 'gotBanana': items.banana.visible = false; girl.userData.carryBanana.visible = true; bell(560); break;
+    case 'gotLamp': items.lamp.userData.lamp.visible = false; girl.userData.lamp.visible = true; fx().pickup(); break;
+    case 'gotBanana': items.banana.visible = false; girl.userData.carryBanana.visible = true; fx().pickup(); break;
     case 'needLotus': bubble(items.altar, 'lotus', { count: 3, filled: S.lotus, offset: 1.3 }); pulseSockets(); bump(); break;
     case 'offered': offerLotuses(); break;
     case 'altarDone': break;
     case 'monkeyHungry': bubble(monkey, 'banana', { offset: 1.25 }); chatter(); monkeyHop(); break;
-    case 'monkeyFed': girl.userData.carryBanana.visible = false; monkey.userData.snack.visible = true; chatter(); bell(740); monkeyLeave(); break;
+    case 'monkeyFed': girl.userData.carryBanana.visible = false; monkey.userData.snack.visible = true; chatter(); setTimeout(chatter, 450); fx().place(); monkeyLeave(); break;
     case 'needLamp': bubble(girl, 'lamp', { offset: 2.0 }); sparkle(items.oil, 1); bump(); break;
-    case 'gotOil': items.oil.children[2].visible = false; girl.userData.lamp.userData.flame.visible = true; bell(880); setTimeout(unfoldStairB, 600); break;
+    case 'gotOil': items.oil.children[2].visible = false; girl.userData.lamp.userData.flame.visible = true; fx().flame(); setTimeout(unfoldStairB, 600); break;
     case 'needLampAltar': case 'needOil': bubble(items.dagoba, 'flame', { offset: 1.2 }); lampSocket.material.opacity = 0.6; bump(); break;
     case 'win': E.win(); break;
-    case 'sluiceOpened': { const z0 = sluiceWheel.rotation.z; anims.push({ t: 0, dur: 1.6, f: (e) => (sluiceWheel.rotation.z = z0 + e * Math.PI * 4) }); grind(1.5); pond.target = -0.08; break; }
-    case 'sluiceClosed': { const z0 = sluiceWheel.rotation.z; anims.push({ t: 0, dur: 1.6, f: (e) => (sluiceWheel.rotation.z = z0 - e * Math.PI * 4) }); grind(1.5); pond.target = -0.36; break; }
-    case 'gotPot': potItem.visible = false; heldPot.visible = true; bell(620); break;
+    case 'sluiceOpened': { const z0 = sluiceWheel.rotation.z; anims.push({ t: 0, dur: 1.6, f: (e) => (sluiceWheel.rotation.z = z0 + e * Math.PI * 4) }); fx().wheel(10, 0.15); grind(1.5); setTimeout(() => fx().rush(3.4), 700); pond.target = -0.08; break; }
+    case 'sluiceClosed': { const z0 = sluiceWheel.rotation.z; anims.push({ t: 0, dur: 1.6, f: (e) => (sluiceWheel.rotation.z = z0 - e * Math.PI * 4) }); fx().wheel(10, 0.15); grind(1.5); pond.target = -0.36; break; }
+    case 'gotPot': potItem.visible = false; heldPot.visible = true; fx().pickup(); break;
     case 'needPot': bubble(boTree, 'drop', { offset: 4.4 }); bump(); break;
     case 'watered': case 'wateredGate': waterBo(); break;
     case 'needFlags': bubble(flagPoleA, 'flag', { offset: 1.7, count: 5, filled: S.flags }); bump(); break;
@@ -948,7 +949,7 @@ function hintTarget() {
     const gA = new THREE.Vector3(...GN.P_gate), gB = nodePos('G1'), d = gB.clone().sub(gA); d.y = 0;
     const rel = girl.position.clone().sub(gA); rel.y = 0; const along = THREE.MathUtils.clamp(rel.dot(d) / d.lengthSq(), 0, 1);
     const f = ringOf(S.player) === 'P' ? along : 1; const k = f * f * (3 - 2 * f);
-    return { target: GCv.clone().lerp(new THREE.Vector3(0, 0, 0), k).setY(1.4), zoom: 1 + 0.32 * k }; }
+    return { target: GCv.clone().lerp(new THREE.Vector3(0, 0, 0), k).setY(1.4), zoom: 1.42 - 0.1 * k, pz: 1.1 }; }
   function tick(dt, t) {
     updateRotation(dt);
     const flick = (f, sx, sy) => f.scale.set(sx + Math.sin(t * 17 + f.id) * 0.03, sy + Math.sin(t * 13 + f.id) * 0.05, 1);
@@ -971,6 +972,28 @@ function hintTarget() {
     islePlate.userData.glow.material.opacity = S.boStair ? 0.15 : 0.35 + Math.sin(t * 3) * 0.25;
   }
   function afterCamera() { backdrop.position.set(E.camTarget.x, 0, E.camTarget.z); backdrop.rotation.y = cam.az - Math.PI / 4; }
+  /* ---------- sound ---------- */
+  const nearPond = () => THREE.MathUtils.clamp(1 - girl.position.distanceTo(pondC) / 18, 0.1, 1);
+  function sound(A) { // a calm temple morning: breeze, birds, a koel, a far bell; the pond once it fills
+    A.loop({ color: 'pink', f: 480, q: 0.45, vol: 0.025, lfo: [0.06, 0.4] });
+    const leaves = A.loop({ color: 'white', f: 4200, q: 0.4, vol: 0.002, pan: -0.2, lfo: [0.11, 0.6] });
+    const water = A.loop({ color: 'pink', f: 650, q: 1.1, vol: 0, lfo: [0.35, 0.55] });
+    A.every([7, 15], () => A.swell(leaves, 0.006, A.rnd(3, 6)), 4);
+    A.every([2.5, 6.5], () => A.bird('chirp'), 1.5);
+    A.every([5, 12], () => A.bird('bulbul'), 3);
+    A.every([22, 40], () => A.bird('koel'), 8);
+    A.every([14, 28], () => A.bird('dove'), 12);
+    A.every([38, 65], () => A.bell(A.note(-5), A.now(), { bus: 'amb', vol: 0.045, far: 0.85, dur: 5 }), 18);
+    A.every([1.2, 3.5], () => { if (pond.level > -0.2) A.sfx.plip({ vol: 0.02 * nearPond(), bus: 'amb', far: 0.4, pan: A.rnd(-0.4, 0.4) }); });
+    return { update() { const k = THREE.MathUtils.clamp((pond.level + 0.36) / 0.28, 0, 1) * nearPond(); water.g.gain.setTargetAtTime(0.025 * k, A.ctx.currentTime, 0.4); } };
+  }
+  function surfaceAt(pos, cur) { // what her bare feet are on
+    const e = cur && cur.e; if (!e) return 'stone';
+    if (e.causeway || e.stair || e.kind === 'stair') return 'stone';
+    if (cur.from === 'P_pad' || cur.to === 'P_pad') return 'pad';
+    if (cur.from === 'P_bo' || cur.to === 'P_bo') return 'stone';
+    const r = ringOf(cur.to); return r === 'P' || r === 'G' ? 'sand' : r === 'A' ? 'brick' : 'stone';
+  }
   const winHook = () => { onWin(); setTimeout(() => E.playAction('wave', { speed: 1 }), 2500); };
-  return { nodePos, surfaceTarget, edgePoints, onArrive, onResult, tapHidden, actionFor, items, unreachable, hintTarget, inventory, focus, tick, afterCamera, MSG, NAMES, busy, onHandle, onWin: winHook };
+  return { nodePos, surfaceTarget, edgePoints, onArrive, onResult, tapHidden, actionFor, items, unreachable, hintTarget, inventory, focus, tick, afterCamera, MSG, NAMES, busy, onHandle, onWin: winHook, sound, surfaceAt };
 }

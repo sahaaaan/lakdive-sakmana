@@ -1,5 +1,5 @@
 // Chapter III: Yala. Pure level logic (no rendering), shared with the solver.
-// Area 1: the red tracks (morning). Read the signs (footprints, dung, broken branches) at each crossroads to follow
+// Area 1: the red tracks (morning). Read the signs (footprints, broken branches) and listen at each crossroads to follow
 //         the lost calf's trail; the calf then follows you; leave it standing on the lever stone to hold the river bridge down.
 // Area 2: the waterholes (golden hour). The ranger radios a bearing and a description; find the right herd by
 //         counting tracks from the lone tree and counting elephants.
@@ -68,10 +68,10 @@ export function findPath(s, from, to, extra = []) {
 // the calf can wade the river; she can't
 export const calfPath = (s, from, to) => findPath(s, from, to, [['B_bank', 'R_far']]);
 
-export const SPOTS = { calfFind: 'G_calf', calf: null, br0: 'G_bear', br1: 'G_buff', br2: 'G_tusk', pool: 'G_pool', herd1: 'E23', herd2: 'E32', herd3: 'W23' };
-// sighting slips (area 2) are tapped where you see them
-export function canTap(s, k) { if (k === 'leaf') return !s.has.leaf; if (k[0] === 'n') return !s.noteTaken[+k[1]]; return false; }
-export function tap(s, k) { if (!canTap(s, k)) return null; if (k === 'leaf') { s.has.leaf = true; return 'leaf'; } s.noteTaken[+k[1]] = true; s.notes++; return 'note'; }
+export const SPOTS = { calfFind: 'G_calf', calf: null, pool: 'G_pool', herd1: 'E23', herd2: 'E32', herd3: 'W23' };
+// fallen branches (area 1) and sighting slips (area 2) are tapped wherever you see them
+export function canTap(s, k) { if (k === 'leaf') return !s.has.leaf; if (k[0] === 'b') return !s.branchTaken[+k[1]]; if (k[0] === 'n') return !s.noteTaken[+k[1]]; return false; }
+export function tap(s, k) { if (!canTap(s, k)) return null; if (k === 'leaf') { s.has.leaf = true; return 'leaf'; } if (k[0] === 'b') { s.branchTaken[+k[1]] = true; s.branches++; return 'branch'; } s.noteTaken[+k[1]] = true; s.notes++; return 'note'; }
 export const PLATES = {};
 export function stepOn() { return null; }
 

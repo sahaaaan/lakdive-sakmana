@@ -29,7 +29,7 @@ body.sigi.won{--sky-top:#3d3a6a;--sky-mid:#d0789a;--sky-bot:#f3a85a}
 #panel.on{display:block}#panel b.h{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
 #panel .bar{display:inline-block;height:9px;border-radius:4px;vertical-align:middle;margin-left:3px}
 #panel .ok{color:#2f8a4a;font-weight:700}#panel .no{color:#b8432f;font-weight:700}#panel .fl{display:inline-block;padding:1px 7px;border-radius:9px;margin:1px 2px;font-weight:700;font-size:12px}
-@media (max-width:600px){#panel{max-width:62vw;font-size:12px}}`;
+@media (max-width:600px), (max-height:500px){#panel{max-width:62vw;font-size:12px}}`;
 
 const FL_COL = { jasmine: '#f6f2e6', lotus: '#f0a0b8', lily: '#7aa6e0', araliya: '#f6d27a' };
 const FL_NAME = { jasmine: 'white jasmine (pichcha)', lotus: 'pink lotus (nelum)', lily: 'blue water lily (nil manel)', araliya: 'frangipani (araliya)' };
@@ -149,8 +149,11 @@ function build(E) {
   /* ================= AREA 2: THE MIRROR WALL ================= */
   box(17.6, 0.5, 7.4, PAL.pave, at2(1.0, -0.25, 0.4), 'a2'); islandBase(at2(1.0, 0, 0.4), 9.6, 7, PAL.rockDark, 1, 0.55);
   // the great rock face behind, with the fresco pocket shelf
-  { const rock = mesh(new THREE.BoxGeometry(19, 12, 5), mat(PAL.rock)); rock.position.copy(at2(1.0, 5.5, -6.6)); scene.add(rock);
-    for (let i = 0; i < 9; i++) { const st = mesh(new THREE.BoxGeometry(2.2, 12, 0.3), mat(i % 2 ? PAL.rockDark : 0xc88a5a)); st.position.copy(at2(-7.5 + i * 2.1, 5.5, -4.05)); scene.add(st); } }
+  // (it turns see-through when you look from behind it, in the two views where the stairways join)
+  const rockFaceMats = []; const rmat = (c) => { const m = new THREE.MeshStandardMaterial({ color: c, roughness: 0.92, flatShading: true, transparent: false, opacity: 1 }); rockFaceMats.push(m); return m; };
+  { const rock = mesh(new THREE.BoxGeometry(19, 12, 5), rmat(PAL.rock)); rock.position.copy(at2(1.0, 5.5, -6.6)); scene.add(rock);
+    for (let i = 0; i < 9; i++) { const st = mesh(new THREE.BoxGeometry(2.2, 12, 0.3), rmat(i % 2 ? PAL.rockDark : 0xc88a5a)); st.position.copy(at2(-7.5 + i * 2.1, 5.5, -4.05)); scene.add(st); } }
+  let rockFade = 1;
   const shelf = box(12.6, 0.3, 1.5, 0xd8b088, at2(2.5, 3.45, -3.45), 'a2'); box(12.6, 0.5, 0.12, PAL.brickDark, at2(2.5, 3.85, -2.72));
   const LY = 1.0; // beam height above the ledge
   const lp = (gx, gy, y = 0) => V3(L.lightPos(gx, gy, y));
@@ -267,7 +270,7 @@ function build(E) {
     const b = mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.04, 16), mat(PAL.bronze, { metalness: 0.5 })); b.rotation.x = Math.PI / 2; b.position.set(0.55, 1.6, 0); gong.add(b); gong.userData.b = b; }
   const windStreaks = new THREE.Group(); scene.add(windStreaks); for (let i = 0; i < 10; i++) { const s = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.03, 0.03), glow(0xffffff, 0)); s.position.copy(at3(-3 + hash(i, 1, 9) * 6, 2 + hash(i, 2, 9) * 5, -3.5 - hash(i, 3, 9) * 2)); windStreaks.add(s); }
   // the palace terraces: path strips (paving) and channels (water) on each slab, turned as one piece
-  const tiles = L.TILES.map(([i, j, path, chan, turns], k) => { const g = new THREE.Group(); g.position.copy(V3(L.tilePos(i, j))); scene.add(g); const inner = new THREE.Group(); g.add(inner); g.userData.inner = inner;
+  const tiles = L.TILES.map(([i, j, path, chan, turns], k) => { const g = new THREE.Group(); g.position.copy(V3(L.tilePos(i, j))); scene.add(g); const inner = new THREE.Group(); inner.position.y = 0.08; g.add(inner); g.userData.inner = inner; // sits just above the summit lawn (no flicker)
     const slab = mesh(new THREE.BoxGeometry(2.3, 0.3, 2.3), mat(turns ? 0xd8b890 : 0x7aa05a)); slab.position.y = -0.1; inner.add(slab);
     if (!turns) { for (let q = 0; q < 4; q++) { const b = mesh(new THREE.IcosahedronGeometry(0.35, 0), mat(q % 2 ? PAL.jungle2 : 0x6aa050)); b.position.set((hash(q, i, j) - 0.5) * 1.4, 0.2, (hash(j, q, i) - 0.5) * 1.4); inner.add(b); } return g; }
     const SIDES = [[0, -1], [1, 0], [0, 1], [-1, 0]];
@@ -307,7 +310,7 @@ function build(E) {
     const a = L.areaOf(S.player);
     if (a === 1 && S.gardenOpen && !S.gate1) { const f = L.fountains(S.V); return `<b class="h">Fountains · now / carved on the stone</b><br>` + ['North', 'Middle', 'South'].map((n, j) => `${n}: <span class="bar" style="width:${f[j] * 16}px;background:#5fa9d0"></span> ${f[j]} / ${L.FTARGET[j]} ${f[j] === L.FTARGET[j] ? '<span class="ok">✓</span>' : ''}`).join('<br>') + `<br><small>Each valve feeds more than one fountain. Valves (shut → half → full): ${S.V.map((v, i) => `${i + 1}:${L.VALVE_MODES[v]}`).join(' ')}</small>`; }
     if (a === 1 && !S.gardenOpen && /^g/.test(S.player)) return `<b class="h">The reflecting pool</b><br>You: stone ${S.player === L.cellId(...L.P_PLATE) ? '<span class="ok">✓</span>' : '·'} &nbsp; Reflection: stone ${S.twin[0] === L.T_PLATE[0] && S.twin[1] === L.T_PLATE[1] ? '<span class="ok">✓</span>' : '·'}<br><small>Your reflection copies each step, mirrored. When its way is blocked it stays put. Tap the pool to bring it level with you.</small>`;
-    if (a === 2) { const fl = L.MAIDENS.map((_, i) => S.lit[i] ? `<span class="fl" style="background:${FL_COL[L.FLOWERS[i]]}">${['east', 'middle', 'west'][i]}: ${L.FLOWERS[i]}</span>` : `<span class="fl" style="background:#ddd">${['east', 'middle', 'west'][i]}: ?</span>`).join('');
+    if (a === 2) { const fl = L.MAIDENS.map((_, i) => S.lit[i] ? `<span class="fl" style="background:${FL_COL[L.FLOWERS[i]]}">${['Lion Rock end', 'middle', 'far end'][i]}: ${L.FLOWERS[i]}</span>` : `<span class="fl" style="background:#ddd">${['Lion Rock end', 'middle', 'far end'][i]}: ?</span>`).join('');
       return `<b class="h">Fresco notes · maidens lit ${S.lit.filter(Boolean).length}/3</b><br>${fl}<br>Wall panels polished: <b>${S.pol.filter(Boolean).length}/4</b>${S.cloth ? '' : ' <span class="no">(you need the cloth from the pocket)</span>'}<br><small>Tap a bronze mirror to turn it: flat → / → \\ → flat. Dull panels swallow the light until polished.</small>`; }
     if (a === 3 && /^(SUM_IN|CIS|THRONE|t\d\d)$/.test(S.player)) { const walk = !!L.findPath(S, 'SUM_IN', 'THRONE'), water = L.waterLinked(S);
       return `<b class="h">The palace terraces</b><br>Walk to the throne: ${walk ? '<span class="ok">✓</span>' : '<span class="no">✗</span>'} &nbsp; Channel cistern → outlet: ${water ? '<span class="ok">✓</span>' : '<span class="no">✗</span>'}<br>Sluice: ${S.sluice ? 'open' : 'shut'}${S.offered.length ? `<br>Offered: ${S.offered.join(', ')}` : ''}<br><small>Cream strips are paths, blue grooves carry water. Tap a terrace to turn it.</small>`; }
@@ -333,21 +336,45 @@ function build(E) {
     return null;
   }
   // wind gusts wake the hornets: on the climb she waits on a landing until it passes
-  const GUST = 7.0, GUST_ON = 2.2; let clock2 = 0;
-  const gustAt = (t) => (t % GUST) < GUST_ON;
-  function holdEdge(e, c) {
-    if (c.d > 0 || e.kind !== 'hornet') return false; const len = c.lens[c.lens.length - 1] / 1.5 + 0.3;
-    const danger = gustAt(clock2) || gustAt(clock2 + len * 0.5) || gustAt(clock2 + len);
-    if (danger && !c.told) { c.told = true; label('The wind gong is ringing and the hornets are stirring. Wait on the landing until the wind drops…', 3000); }
-    return danger;
+  const GUST = 9.0, GUST_ON = 2.4; let clock2 = 0; // a gust every 9 s, lasting 2.4 s: a 6.6 s calm, plenty for one flight (about 3.5 s)
+  const A_N = [2, 4, 6, 7];
+  /* ---------- sound ---------- */
+  function sound(A) { // morning fountains in the water gardens; midday cicadas at the Mirror Wall; wind and hornets on the Lion Rock
+    const area = () => L.areaOf(S.player);
+    const water = A.loop({ color: 'pink', f: 900, q: 0.8, vol: 0.014, lfo: [0.45, 0.4] });
+    const spray = A.loop({ color: 'white', f: 3200, q: 0.5, vol: 0.003, lfo: [0.3, 0.4], pan: 0.25 });
+    const breeze = A.loop({ color: 'pink', f: 420, q: 0.45, vol: 0.016, lfo: [0.05, 0.4] });
+    const wind = A.loop({ color: 'pink', f: 300, q: 0.35, vol: 0, lfo: [0.09, 0.5] });
+    const ctx = A.ctx, buzz = ctx.createOscillator(), vb = ctx.createOscillator(), vg = ctx.createGain(), bf = ctx.createBiquadFilter(), bg = ctx.createGain();
+    buzz.type = 'sawtooth'; buzz.frequency.value = 210; vb.frequency.value = 23; vg.gain.value = 9; vb.connect(vg).connect(buzz.frequency); bf.type = 'bandpass'; bf.frequency.value = 900; bf.Q.value = 2; bg.gain.value = 0;
+    buzz.connect(bf).connect(bg); A.out(bg, { bus: 'amb', far: 0.35, pan: 0.15 }); buzz.start(); vb.start();
+    A.every([3, 7], () => area() === 1 && A.bird('chirp'), 2);
+    A.every([6, 13], () => area() !== 3 && A.bird('bulbul'), 4);
+    A.every([7, 15], () => area() === 2 && A.bird('cicada', { far: 0.45 }), 3);
+    A.every([25, 45], () => area() !== 3 && A.bird('koel', { far: 0.75, vol: 0.6 }), 14);
+    return { update() { const a = area(), g = a === 3 && !S.won && gustAt(clock2);
+      water.to(a === 1 || S.won ? 0.014 : 0.003); spray.to(a === 1 || S.won ? 0.003 : 0); breeze.to(a === 3 ? 0.008 : 0.016);
+      wind.to(a === 3 ? (g ? 0.05 : 0.02) : 0, g ? 0.5 : 1); bg.gain.setTargetAtTime(g ? 0.012 : 0, ctx.currentTime, g ? 0.25 : 0.6); } };
   }
+  function surfaceAt(pos, cur) { const k = cur && cur.e && cur.e.kind; if (k === 'climb' || k === 'hornet' || k === 'stair') return 'iron'; if (k === 'tile') return 'brick'; return 'stone'; }
+  const gustAt = (t) => (t % GUST) < GUST_ON;
+  function holdEdge(e, c) { // she sets off only when the whole flight fits inside a calm spell
+    if (c.d > 0 || e.kind !== 'hornet') return false;
+    const dur = c.lens[c.lens.length - 1] / (e.speed || 1.5) + 0.4, ph = clock2 % GUST;
+    const calmLeft = ph < GUST_ON ? 0 : GUST - ph; // seconds until the next gust starts
+    const wait = calmLeft < dur;
+    if (wait && !c.told) { c.told = true; label('The wind gong is ringing and the hornets are stirring. She waits on the landing for the next calm…', 3200); }
+    if (!wait && c.told && !c.go) { c.go = true; label('The wind drops. <b>Now!</b> Up she goes.', 2200); E.sfx.pluck(7, { vol: 0.05 }); }
+    return wait;
+  }
+
   let walkCur = null;
   function onEdgeStart(e, cur) {
     walkCur = cur;
     if (e.kind === 'cell' && !S.gardenOpen) { const [c0, r0] = [+cur.from[1], +cur.from[2]], [c1, r1] = [+cur.to[1], +cur.to[2]]; const tc = S.twin[0] + c1 - c0, tr = S.twin[1] + r1 - r0;
       const ok = tc >= 0 && tc < L.GC && tr >= 0 && tr < L.GR && !L.T_BLOCK.includes(tc + ',' + tr); twinMove.from = twin.position.clone(); twinMove.to = ok ? V3(L.cellPos(tc, tr, 1)) : twin.position.clone(); twinMove.cur = cur; twinMove.blocked = !ok; }
-    if (e.kind === 'illusion') { bell(1046); sparkle(girl, 1); }
-    if (e.kind === 'climb' && !S.won) bell(523);
+    if (e.kind === 'illusion') { E.sfx.whoosh(0.9); [5, 9].forEach((n, i) => E.sfx.pluck(n, { vol: 0.05, delay: i * 0.15, far: 0.4 })); sparkle(girl, 1); }
+    
   }
   function onArrive(node, e, stop) {
     if (e && e.kind === 'cell') { const from = e.a === node ? e.b : e.a; const r = L.mirrorStep(S, from, node); twinMove.cur = null; twin.position.copy(V3(L.cellPos(...S.twin, 1)));
@@ -356,7 +383,7 @@ function build(E) {
     if (e && e.kind === 'illusion' && node === 'L_mid') { const base = Math.PI / 4; const k = Math.round((cam.azTo - base) / (2 * Math.PI)); cam.azTo = base + k * 2 * Math.PI; label('You drop down onto the gallery. The view swings back round to the front.', 3200); }
     if (e && e.kind === 'climb') { label(L.areaOf(node) === 2 ? 'Up through the boulder garden to the foot of the Lion Rock. An iron stair clings to the rock face…' : L.areaOf(node) === 3 ? 'Out onto the lion platform. Two giant paws guard the last climb to the summit.' : 'Back down in the gardens.', 4200); }
     const ev = stop ? L.stepOn(S, node) : null;
-    if (ev) { click(); grind(0.8); anims.push({ t: 0, dur: 0.5, f: (k) => (sluiceGate.position.y = C3.y + 7.3 + (ev.on ? 0.6 * k : 0.6 * (1 - k))) });
+    if (ev) { E.sfx.thunk(); grind(0.8); if (ev.on) setTimeout(() => E.sfx.rush(3), 600); anims.push({ t: 0, dur: 0.5, f: (k) => (sluiceGate.position.y = C3.y + 7.3 + (ev.on ? 0.6 * k : 0.6 * (1 - k))) });
       label(ev.flows ? 'The sluice lifts and cistern water rushes along the channels, across the terraces and over the western edge!' : ev.on ? 'The sluice lifts, but the water stops at a terrace that doesn’t line up. Turn the terraces so the blue grooves join.' : 'You step on again and the sluice drops shut.', 4200); }
     refreshPanel();
   }
@@ -375,7 +402,7 @@ function build(E) {
     gate2: 'The third maiden glows and the whole gallery shines gold. At the far end, the old iron gate to the lion platform swings open!',
     tileFixed: 'This terrace is a garden bed set in stone: it doesn’t turn.', tileUnderFoot: 'You can’t turn the terrace you’re standing on.',
     turned: 'The terrace grinds round a quarter turn.', waterOn: 'The terrace clicks into place and the cistern water flows all the way through!', waterOff: 'The channel breaks and the water stops.',
-    offerOk: 'You lay the flowers in the throne’s offering bowl.', offerWrong: 'The flowers wilt in the bowl. Wrong order: think about how the maidens stand along the wall, from the lion end. The bowl empties.',
+    offerOk: 'You lay the flowers in the throne’s offering bowl.', offerWrong: 'The flowers wilt in the bowl. Wrong order: think about how the maidens stand along the wall, starting with the one nearest the Lion Rock. The bowl empties.',
     offerDry: 'The offering is right, but the throne’s pool is dry. The cistern water has to be flowing first.',
   };
   let cur3 = null;
@@ -387,13 +414,13 @@ function build(E) {
       case 'gate1': bell(784); bell(988, 0.2); grind(1.4); gateDoors.forEach((h) => { const r0 = h.rotation.y; anims.push({ t: 0, dur: 1.6, f: (k) => (h.rotation.y = r0 + h.userData.side * k * 1.75) }); });
         gateLamps.forEach((l, i) => setTimeout(() => { l.material.color.setHex(0xffd27a); sparkle(l, 1); bell(880 + i * 60); }, 900 + i * 260)); setTimeout(() => sparkle(gate1Beacon, 2), 600);
         label('The stone doors between the boulders swing open and lanterns light up the steps beyond. Tap the gate, then the steps, to climb to the Mirror Wall.', 6000); break;
-      case 'gotCloth': clothKit.visible = false; bell(880); E.refresh(); break;
+      case 'gotCloth': clothKit.visible = false; E.sfx.pickup(); E.refresh(); break;
       case 'wallDull': bubble(items[what], 'cloth', { offset: 1.4 }); bump(); break;
       case 'polished': case 'mirror': case 'maidenLit': case 'gate2':
         if (/^w\d$/.test(what)) { const i = +what[1]; const gp = wallPanels[i].userData; gp.face.material = mat(PAL.polished, { metalness: 0.4, roughness: 0.2, emissive: 0x3a3020 }); [0, 1, 2].forEach((k) => (gp['stain' + k].visible = false)); gp.wtag.visible = false; sparkle(wallPanels[i], 1); click(); }
-        if (/^m\d$/.test(what)) { setMirror(+what[1]); click(); E.stats.turns++; }
+        if (/^m\d$/.test(what)) { setMirror(+what[1]); E.sfx.lever(); E.sfx.pluck(A_N[+what[1]] ?? 0, { vol: 0.03 }); E.stats.turns++; }
         drawBeam(); refreshMaidens();
-        if (r === 'maidenLit' || r === 'gate2') { bell(988); bell(1318, 0.15); const i = S.lit.lastIndexOf(true); }
+        if (r === 'maidenLit' || r === 'gate2') { E.sfx.found(3); E.sfx.pad([0, 4, 7], 5, { vol: 0.02 }); const i = S.lit.lastIndexOf(true); }
         if (r === 'gate2') { anims.push({ t: 0, dur: 1.0, f: (k) => (gate2Bars.rotation.y = -k * 1.7) }); grind(1.0);
           gate2Lamps.forEach((l, i) => setTimeout(() => { l.material.color.setHex(0xffd27a); sparkle(l, 1); bell(880 + i * 50); }, 800 + i * 220));
           label('All three maidens glow and the iron gate at the end of the gallery swings open. Lanterns light the stair beyond. Tap the glowing gate, then the steps, to climb to the Lion Rock.', 6500); }
@@ -409,11 +436,11 @@ function build(E) {
   }
   function refreshMaidens() { maidens.forEach((m, i) => { const lit = S.lit[i]; if (m.userData.lit !== lit) { m.userData.lit = lit; m.material.map = maidenTex(i, lit); m.material.emissive = new THREE.Color(lit ? 0x4a3010 : 0); m.material.needsUpdate = true; } }); }
   let finaleT = -1;
-  function finale() { document.body.classList.add('won'); bell(784); bell(988, 0.3); bell(1175, 0.6); finaleT = 0; throne.userData.pool.material = new THREE.MeshStandardMaterial({ color: PAL.water, roughness: 0.15 }); E.playAction('wave', { speed: 1 }); }
+  function finale() { document.body.classList.add('won'); E.sfx.rush(6); setTimeout(() => E.sfx.rush(5), 2500); bell(784); bell(988, 0.3); bell(1175, 0.6); finaleT = 0; throne.userData.pool.material = new THREE.MeshStandardMaterial({ color: PAL.water, roughness: 0.15 }); E.playAction('wave', { speed: 1 }); }
   function tapHidden(k) {
     const r = L.tap(S, k); if (!r) return; E.progress();
     if (r === 'verse') { const i = +k[1]; verses[i].material.opacity = 0.35; bell(880 + i * 110); label(['“The lady with the golden skin… she has stolen my heart.” A visitor scratched this 1,200 years ago.', '“I am Budal. I came with hundreds of people to see Sigiriya. Since all the others wrote poems, I did not!”', '“The wind blows, the hornets are angry: still I climbed to see the maidens.”'][i] + ` (verse ${S.verses.filter(Boolean).length}/3)`, 5200); }
-    if (r === 'leaf') { leaf.visible = false; bell(988); bell(1318, 0.15); label('<em>Puskola</em> · an ola-leaf page, tucked behind the king’s throne', 4000); }
+    if (r === 'leaf') { leaf.visible = false; E.sfx.found(4); label('<em>Puskola</em> · an ola-leaf page, tucked behind the king’s throne', 4000); }
     E.refresh();
   }
   const actionFor = { cloth: () => 'pickup', v0: () => null, v1: () => null, v2: () => null, v3: () => null, w0: () => 'place', w1: () => 'place', w2: () => 'place', w3: () => 'place',
@@ -441,7 +468,7 @@ function build(E) {
     if (S.player === 'LION' || S.player === 'ST1' || S.player === 'ST2') return { obj: gong, words: ['Watch the gong: when it swings, the hornets stir. Step up between gusts.'] };
     const walk = !!L.findPath(S, 'SUM_IN', 'THRONE'); if (!walk || !L.waterLinked(S)) { const k = L.TILES.findIndex((t, q) => t[4] && !S.T.every(() => false) && q >= 0 && tileWrong(q)); return { obj: tiles[k >= 0 ? k : 4], words: ['The middle terrace has to carry both: the path running north–south over a little bridge, and the water crossing east–west beneath it.'] }; }
     if (!S.sluice) return { obj: sluiceStone, words: ['Stand on the sluice stone beside the summit steps.'] };
-    return { obj: bowls[['lily', 'jasmine', 'araliya', 'lotus'].indexOf(L.FLOWERS[L.FLOWER_ORDER[S.offered.length]])], words: ['Along the wall from the lion end (west): blue lily, then pink lotus, then white jasmine.'] };
+    return { obj: bowls[['lily', 'jasmine', 'araliya', 'lotus'].indexOf(L.FLOWERS[L.FLOWER_ORDER[S.offered.length]])], words: ['Along the wall, starting nearest the Lion Rock: white jasmine, then pink lotus, then blue lily.'] };
   }
   const SOLVED = (() => { const turnable = L.TILES.map((t, k) => (t[4] ? k : -1)).filter((k) => k >= 0); for (let c = 0; c < 4 ** turnable.length; c++) { const T = L.TILES.map((t) => t[5]); let v = c; for (const k of turnable) { T[k] = v % 4; v = Math.floor(v / 4); } const s = { ...L.initialState(), T }; if (L.waterLinked(s) && L.findPath(s, 'SUM_IN', 'THRONE')) return T; } })();
   function tileWrong(k) { const t = L.TILES[k]; return L.rotMask(t[2], S.T[k]) !== L.rotMask(t[2], SOLVED[k]) || L.rotMask(t[3], S.T[k]) !== L.rotMask(t[3], SOLVED[k]); }
@@ -454,12 +481,14 @@ function build(E) {
     if (finaleT >= 0) { const k = Math.min(1, finaleT / 4); const mid = F[0].clone().lerp(F[2], 0.5); return { target: F[2].clone().lerp(mid, k), zoom: Z[2] + (0.42 - Z[2]) * k, k: 2 }; }
     let a = L.areaOf(S.player) - 1, target = F[a].clone(), zoom = Z[a];
     const c = walkCur; if (c && c.e && c.e.kind === 'climb' && c.d > 0) { const ta = L.areaOf(c.to) - 1, fa = L.areaOf(c.from) - 1; const k0 = c.d / c.lens[c.lens.length - 1]; const k = k0 * k0 * (3 - 2 * k0); target = F[fa].clone().lerp(F[ta], k); zoom = Z[fa] + (Z[ta] - Z[fa]) * k; a = fa + (ta - fa) * k; }
-    return { target, zoom, k: a };
+    return { target, zoom, k: a, pz: [1.15, 0.82, 1.0][a] };
   }
   const sky = [{ sun: new THREE.Color(0xfff2e0), hemi: new THREE.Color(0xeef4ee), fog: new THREE.Color(0xe6eee6) }, { sun: new THREE.Color(0xfffbe8), hemi: new THREE.Color(0xfaf2dc), fog: new THREE.Color(0xf0ead8) },
     { sun: new THREE.Color(0xffc890), hemi: new THREE.Color(0xf3dcc0), fog: new THREE.Color(0xf0dcc0) }, { sun: new THREE.Color(0xd08080), hemi: new THREE.Color(0xa080a8), fog: new THREE.Color(0x9a7a9a) }];
   drawBeam();
   function tick(dt, t) {
+    { const behind = L.areaOf(S.player) === 2 && (S.view === L.V_UP || S.view === L.V_DOWN); const want = behind ? 0.16 : 1;
+      if (Math.abs(rockFade - want) > 0.005) { rockFade += (want - rockFade) * Math.min(1, dt * 4); const see = rockFade < 0.97; rockFaceMats.forEach((m) => { m.opacity = see ? rockFade : 1; m.depthWrite = !see; if (m.transparent !== see) { m.transparent = see; m.needsUpdate = true; } }); } } // solid (normal drawing) except while faded
     clock2 += dt; if (finaleT >= 0) finaleT += dt;
     // the view index (0..3) decides which stairways meet
     { const v = ((Math.round((cam.azTo - Math.PI / 4) / (Math.PI / 2)) % 4) + 4) % 4; if (v !== S.view) { S.view = v; E.refresh(); if (L.areaOf(S.player) === 2 && (v === L.V_UP || v === L.V_DOWN)) bell(1318); } }
@@ -498,6 +527,6 @@ function build(E) {
     document.body.classList.toggle('noon', tod.k > 0.6 && tod.k < 1.6); document.body.classList.toggle('dusk', tod.k >= 1.6);
     refreshPanel();
   }
-  return { nodePos, surfaceTarget, edgePoints, holdEdge, onEdgeStart, onArrive, onResult, tapHidden, actionFor, items, unreachable, hintTarget, inventory, focus, tick, MSG, tod,
+  return { sound, surfaceAt, nodePos, surfaceTarget, edgePoints, holdEdge, onEdgeStart, onArrive, onResult, tapHidden, actionFor, items, unreachable, hintTarget, inventory, focus, tick, MSG, tod,
     reachCap: { v0: 1.0, v1: 1.0, v2: 1.0, v3: 1.0, w0: 1.0, w1: 1.0, w2: 1.0, w3: 1.0, fl_lily: 0.8, fl_lotus: 0.8, fl_jasmine: 0.8, fl_araliya: 0.8 } };
 }
