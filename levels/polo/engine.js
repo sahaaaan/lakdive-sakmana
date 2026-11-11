@@ -14,6 +14,8 @@ const CSS = `  :root{ --sky-top:#e8d9cf; --sky-mid:#f0e6dc; --sky-bot:#d5e0e0; -
   html,body{touch-action:manipulation;overscroll-behavior:none;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
   .panel{max-height:calc(100dvh - 24px);overflow-y:auto}
   #win .cta{margin:4px}
+  .panel .go{position:sticky;bottom:-26px;margin:0 -28px -26px;padding:14px 0 22px;background:linear-gradient(rgba(255,250,244,0),rgba(255,250,244,.96) 38%);border-radius:0 0 18px 18px} /* Begin stays in view on short screens; the text scrolls behind it */
+  @media (max-height:640px){ .panel h2{font-size:32px} .panel h3{font-size:16px;margin-bottom:10px} .panel p{font-size:13.5px!important;margin-bottom:10px!important} .panel ul{font-size:13px!important;margin-bottom:8px!important} .panel{padding-top:18px} }
   .hud{position:fixed;pointer-events:none;inset:0;z-index:5}
   .card{pointer-events:auto;background:var(--card);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:16px;box-shadow:0 8px 30px rgba(90,60,45,.08)}
   #title{position:absolute;left:16px;top:16px;pointer-events:none;padding:12px 16px 14px;max-width:min(380px,calc(100vw - 32px))}
@@ -58,7 +60,7 @@ const CSS = `  :root{ --sky-top:#e8d9cf; --sky-mid:#f0e6dc; --sky-bot:#d5e0e0; -
   #sndMute{border:none;cursor:pointer;border-radius:999px;padding:7px 12px;font:700 13px "Nunito Sans";background:var(--accent);color:#fff}
   #sndMute.off{background:#cbbfb6}
   @keyframes rise{from{opacity:0;transform:translateY(6px) scale(.9)}to{opacity:1;transform:none}}
-  @media (max-width:600px), (max-height:500px){ #title{max-width:calc(100vw - 92px)} #inv{top:12px;right:12px;flex-direction:column} #title .obj{font-size:12.5px} .panel{padding:22px 18px 18px} .panel p{font-size:14px} #sndPanel{right:12px;bottom:76px}
+  @media (max-width:600px), (max-height:500px){ #title{max-width:calc(100vw - 92px)} #inv{top:12px;right:12px;flex-direction:column} #title .obj{font-size:12.5px} .panel{padding:22px 18px 18px} .panel .go{bottom:-18px;margin:0 -18px -18px;padding:12px 0 16px} .panel p{font-size:14px} #sndPanel{right:12px;bottom:76px}
     #title .t{font-size:20px} #inv{padding:6px;gap:4px} .slot{width:38px;height:38px} .slot svg{width:22px;height:22px}
     #view{right:12px;bottom:12px;padding:6px} #toast{bottom:84px;max-width:calc(100vw - 32px)} .panel h2{font-size:38px} }`;
 
@@ -91,7 +93,7 @@ export function run(L) {
   <p style="font-size:15px;line-height:1.55;margin:0 0 12px">${meta.intro}</p>
   ${(L.slots || []).some((x) => x.id === 'leaf') ? `<p style="font-size:13.5px;line-height:1.5;margin:0 0 12px;padding:8px 12px;border-radius:10px;background:rgba(217,190,138,.25)">🍃 ${meta.chapter === 'V' ? 'The last secret ola-leaf page is hidden in this chapter. If you found the other four, it brings a surprise.' : 'A secret ola-leaf page is hidden somewhere in this chapter. Find one in every chapter for a surprise in Chapter V.'}</p>` : ''}
   <ul style="text-align:left;font-size:14px;line-height:1.6;margin:0 0 18px;padding-left:20px;color:var(--ink-soft)">${meta.howto.map((h) => `<li>${h}</li>`).join('')}</ul>
-  <button class="cta" id="start">Begin</button>
+  <div class="go"><button class="cta" id="start">Begin</button></div>
 </div></div>
 <div class="overlay hide" id="win"><div class="panel card">
   <div class="kicker">Chapter complete</div><h2>${meta.winTitle}</h2><h3>${meta.winSub}</h3>

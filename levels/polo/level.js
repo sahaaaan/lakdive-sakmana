@@ -912,7 +912,8 @@ function hintTarget() {
     if (R === 'C') return 'C';
     const ang = R === 'G' ? 0 : ringGroups[R].rotation.y; const th = Math.atan2(point.x, point.z) - ang; return R + (((Math.round(th / STEP) % SLOTS) + SLOTS) % SLOTS);
   }
-  function onArrive(node) { const ev = stepOn(S, node); if (ev) onPlate(ev); if (arriveAt(S, node)) dropFlags(); }
+  function onArrive(node) { const ev = stepOn(S, node); if (ev) onPlate(ev); if (arriveAt(S, node)) dropFlags();
+    if (node === 'P_islet' && !S.hasPot && !S.boWatered) setTimeout(() => { if (S.player === 'P_islet' && !S.hasPot && !S.boWatered) window.__game.interactAt('pot'); }, 120); } // on the islet without the pot: she picks it up
   function tapHidden(k) { if (k === 'disc' || k === 'leaf') return tapSecret(k); if (k[0] === 'f') return collectFlag(+k.slice(1)); if (k[0] === 'l') return collectLotus(+k.slice(1)); }
   function onResult(r, what) {
     if (r === 'wateredGate' || r === 'hungGate') setTimeout(() => { raiseCauseway(); setTimeout(() => label('Stone by stone, a causeway rises from the clouds towards the Stupa House.', 5000), 2600); }, 2200);

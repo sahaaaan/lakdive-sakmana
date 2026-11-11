@@ -148,7 +148,8 @@ export function arriveAt(s, node) {
 // Plates toggle: step on once to activate, step on again to undo (true for every level).
 export function stepOn(s, node) {
   const k = PLATES[node]; if (!k) return null;
-  s[k] = !s[k]; return { k, on: s[k] };
+  if (s[k]) return null; // once raised, the bo tree stair stays up (visiting the islet again no longer lowers it)
+  s[k] = true; return { k, on: true };
 }
 
 export function interact(s, what) {

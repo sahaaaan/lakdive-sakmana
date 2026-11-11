@@ -45,7 +45,9 @@
   #end .panel{padding:28px 30px;text-align:center;max-width:460px}
   #end h2{font-family:Fraunces,serif;font-size:40px;margin:4px 0}
   .cta{background:var(--accent);color:#fff;border:0;border-radius:999px;padding:12px 24px;font:700 16px 'Nunito Sans',sans-serif;cursor:pointer;margin-top:12px}
-  @media (max-width:900px){.ch{padding:9px 10px}.ch .t{font-size:15px}.ch .p{font-size:10px}.ch .s{font-size:11px}}@media (max-width:640px){.ch{width:46vw}#trip{max-width:72vw}#home .head{padding-right:52px}#home h1{font-size:34px}#home .sub{font-size:11px;letter-spacing:.18em}}
+  @media (max-width:900px){.ch{padding:9px 10px}.ch .t{font-size:15px}.ch .p{font-size:10px}.ch .s{font-size:11px}}@media (max-width:640px){#foot{width:100%;max-width:440px;display:flex;flex-direction:column;align-items:center}#chapters{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}.ch{width:auto;padding:8px 10px 9px;border-radius:14px}.ch .n{font-size:11px}.ch .t{font-size:14.5px;margin-top:2px}.ch .s{font-size:10.5px;margin-top:4px}#home{padding:22px 12px 14px}#hint,#leaves{font-size:12px;line-height:1.4}#leaves{margin-top:6px}#over{margin-top:8px}}
+  @media (max-width:640px) and (max-height:620px){.ch .p{display:none}#home h1{font-size:28px}#home .sub{font-size:10px}#home{padding-top:16px}}
+  @media (max-width:640px){.ch{width:46vw}#trip{max-width:72vw}#home .head{padding-right:52px}#home h1{font-size:34px}#home .sub{font-size:11px;letter-spacing:.18em}}
   html,body{touch-action:manipulation;overscroll-behavior:none;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
 body.inlevel #snd{display:none}#snd{position:fixed;right:16px;top:16px;z-index:6;width:42px;height:42px;border-radius:12px;border:none;cursor:pointer;display:grid;place-items:center;color:var(--ink)}#snd svg{width:22px;height:22px}
 </style>
@@ -54,7 +56,7 @@ body.inlevel #snd{display:none}#snd{position:fixed;right:16px;top:16px;z-index:6
 <canvas id="map"></canvas>
 <div id="home">
   <div class="head"><h1>Lakdive Sakmana</h1><div class="sub">A stroll through Sri Lanka</div></div>
-  <div><div id="chapters"></div><div id="hint"></div><div id="leaves"></div><div id="over"><button id="startOver">↺ Start over</button></div></div>
+  <div id="foot"><div id="chapters"></div><div id="hint"></div><div id="leaves"></div><div id="over"><button id="startOver">↺ Start over</button></div></div>
 </div>
 <div id="trip" class="card"><div class="k" id="tripK"></div><div class="t" id="tripT"></div><div class="r" id="tripR"></div></div>
 <button id="skip" class="card">Skip ›</button>
@@ -306,7 +308,7 @@ function renderHome() {
     b.onclick = () => { SND.start(); if (!unlocked(i) || journey || playing >= 0) return; if (here === i) { openLevel(i); document.getElementById('home').classList.add('hide'); } else startJourney(i); };
     box.appendChild(b); });
   const all = prog.done.length >= CH.length;
-  document.getElementById('hint').innerHTML = all ? 'The whole journey is complete. Replay any chapter. <button id="reset">Start a new journey</button>' : prog.done.length ? `Next stop: <b>${CH[next].place}</b>.` : 'Your journey begins in Colombo. <b>Start with the Prologue</b>: it shows you how to play.';
+  document.getElementById('hint').innerHTML = all ? 'The whole journey is complete. Replay any chapter. Use <b>Start over</b> below to begin a new journey.' : prog.done.length ? `Next stop: <b>${CH[next].place}</b>.` : 'Your journey begins in Colombo. <b>Start with the Prologue</b>: it shows you how to play.';
   // the secret ola-leaf pages, one per chapter: all five unlock the Kandyan queen's outfit
   const pages = leafCount(), lv = document.getElementById('leaves'), wearing = wardrobe() === 'queen';
   lv.innerHTML = pages >= 5 ? `📜 All five ola-leaf pages found. <button id="wear" class="${wearing ? 'on' : ''}">👑 ${wearing ? 'Wearing the queen’s outfit' : 'Wear the queen’s outfit'}</button>`
