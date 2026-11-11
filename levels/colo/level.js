@@ -261,6 +261,7 @@ function build(E) {
     if (node === 'FAR' && S.reel === 2) sparkle(tuk, 1);
   }
   function surfaceTarget(kind, point) {
+    if (point.x > 6.1 && point.x < 8.9) { if (S.crossing || S.player === 'FAR') return S.player === 'FAR' ? 'PLATE' : 'FAR'; label('Galle Road is far too busy to just walk across.', 3000); sparkle(plate, 1); return null; } // the road and the zebra
     let best = null, bd = 1e9; for (const id of Object.keys(L.NODES)) { const n = P(id); const d = Math.hypot(n.x - point.x, n.z - point.z); if (d < bd) { bd = d; best = id; } } return best;
   }
   function surfaceAt(pos, cur) {
@@ -278,7 +279,7 @@ function build(E) {
     if (S.reel === 0) return { obj: reel, words: ['Turn the view and look behind the vadai cart.'] };
     if (S.reel === 1) return { obj: kid, words: ['Give the reel back: tap the boy.'] };
     if (!S.crossing && S.player !== 'FAR') return { obj: plate, words: ['The yellow stone by the kerb: stand on it.'] };
-    if (S.player !== 'FAR') return { obj: zebra[2], words: ['Walk across the zebra crossing.'] };
+    if (S.player !== 'FAR') return { obj: tuk, words: ['Tap the green tuk-tuk across the road.'] };
     return { obj: tuk, words: ['Tap the tuk-tuk.'] };
   }
   function inventory(s) { return { wade: !!s.wade, reel: s.reel === 1 }; }

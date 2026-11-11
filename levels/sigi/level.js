@@ -128,6 +128,7 @@ function build(E) {
     const carve = mesh(new THREE.TorusGeometry(0.3, 0.05, 6, 16), mat(0x7a7468)); carve.position.set(-side * 0.65, 1.2, 0.12); hinge.add(carve); hinge.userData.side = side; return hinge; });
   const gateLamps = [];
   const gate1Beacon = beacon(0xffd27a, 2.6); gate1Beacon.position.copy(P('GATE1')); scene.add(gate1Beacon);
+  { const hit = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 2.6, 10), new THREE.MeshBasicMaterial({ visible: false })); hit.position.y = 1.3; gate1Beacon.add(hit); tag(hit, { surface: 'climb1' }); } // tapping the glowing gate starts the climb
   for (const [x, z] of [[-9, 2], [-8.5, -1.5], [9, 3.5], [8.8, 0.2], [-6, 8], [6.5, 7.5], [-9.5, 5.5], [9.6, -4.6]]) tree(new THREE.Vector3(x, 0, z), 0.9 + hash(x, z, 4) * 0.4);
   // the climb from the gate to the Mirror Wall
   const climb1 = [P('GATE1'), V3([7.4, 1.4, -8.4]), V3([10.6, 3.6, -10.6]), V3([13.8, 5.6, -11.2]), P('S_base')];
@@ -203,7 +204,8 @@ function build(E) {
   const landing = (p, s = 1) => { const m = box(1.1 * s, 0.12, 1.1 * s, IRON, p.clone().add(new THREE.Vector3(0, -0.06, 0)), 'a2'); const rail = mesh(new THREE.TorusGeometry(0.55 * s, 0.03, 4, 16, Math.PI), mat(IRON)); rail.position.copy(p).add(new THREE.Vector3(0, 0.55, 0)); scene.add(rail); return m; };
   landing(P('S_mid')); landing(P('S_mid2')); landing(P('P_end')); landing(P('L_mid'), 1.2);
   box(1.1, 3.6, 0.12, IRON, P('S_mid2').add(new THREE.Vector3(0.5, -1.8, 0)));
-  const joinGlow = [P('S_mid'), P('P_end')].map((p) => { const r = new THREE.Mesh(new THREE.RingGeometry(0.4, 0.62, 24), glow(0xfff0b0, 0)); r.rotation.x = -Math.PI / 2; r.position.copy(p).add(new THREE.Vector3(0, 0.04, 0)); scene.add(r); return r; });
+  const joinGlow = [P('S_mid2'), P('L_mid')].map((p) => { const r = new THREE.Mesh(new THREE.RingGeometry(0.4, 0.62, 24), glow(0xfff0b0, 0)); r.rotation.x = -Math.PI / 2; r.position.copy(p).add(new THREE.Vector3(0, 0.22, 0)); scene.add(r); return r; }); // at the far end of each join, where the tap takes her
+  joinGlow.forEach((r, i) => { r.scale.setScalar(1.6); tag(r, { surface: 'join' + i }); }); // tap the glowing join to walk across (when the view lines up)
   // the gallery gate to the lion platform
   const gate2Bars = new THREE.Group(); gate2Bars.position.copy(P('GATE2')).add(new THREE.Vector3(-0.6, 0, 0)); scene.add(gate2Bars);
   for (let i = 0; i < 5; i++) { const b = mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.8, 5), mat(IRON)); b.position.set(0, 0.9, -0.8 + i * 0.4); gate2Bars.add(b); }
@@ -321,12 +323,17 @@ function build(E) {
   /* ---------- walking ---------- */
   const nodePos = (id) => P(id);
   function surfaceTarget(kind, point) {
+    if (kind === 'join0') return S.player === 'S_mid2' ? 'S_mid' : 'S_mid2';
+    if (kind === 'join1') return S.player === 'L_mid' ? 'P_end' : 'L_mid';
     if (kind === 'climb1') return S.gate1 ? 'S_base' : 'GATE1';
     if (kind === 'climb2') return S.gate2 ? 'LION' : 'GATE2';
     if (kind === 'gate2') return 'GATE2';
     const area = kind === 'a2' ? 2 : kind === 'a3' ? 3 : 1;
     const ids = Object.keys(L.NODES).filter((id) => L.areaOf(id) === area && !/^t\d\d$/.test(id));
-    let best = null, bd = 1e9; for (const id of ids) { const n = P(id); const d = Math.hypot(n.x - point.x, n.z - point.z) + Math.abs(n.y - point.y) * 0.8; if (d < bd) { bd = d; best = id; } } return best;
+    let best = null, bd = 1e9; for (const id of ids) { const n = P(id); const d = Math.hypot(n.x - point.x, n.z - point.z) + Math.abs(n.y - point.y) * 0.8; if (d < bd) { bd = d; best = id; } }
+    // where the stairways line up on screen, tapping the meeting point takes her across (the two ends overlap there)
+    if (best === S.player && bd < 1.8) { const il = (L.adjacency(S).get(S.player) || []).find(({ e }) => e.kind === 'illusion'); if (il) return il.to; }
+    return best;
   }
   const curves = { climb: true };
   function edgePoints(e, from, to) {
@@ -463,6 +470,11 @@ function build(E) {
       if (/POCKET|P_end|S_mid2/.test(S.player)) return { obj: joinGlow[1], words: ['From the west end of the pocket, turn the view until the ledge seems to touch the gallery below.'] };
       const next = S.lit.findIndex((l) => !l);
       const words = ['A boulder now blocks the beam’s straight run west. The east maiden: the first mirror can still send the light straight up to her.', 'The middle maiden: send the beam down onto the wall, along to the second polished panel and up the middle column. The mirror in that column must lie flat.', 'The west maiden is the long way: wall → up the middle column → that mirror turns it west → the next mirror sends it down → the last two panels → up.'][next];
+      // point at the next mirror to turn: the fewest turns from the mirrors as they are now to light this maiden
+      if (next >= 0 && (next === 0 || S.pol.every(Boolean))) { let best = null;
+        for (let c = 0; c < 81; c++) { const M = [0, 1, 2, 3].map((i) => Math.floor(c / 3 ** i) % 3); if (L.trace({ M, pol: S.pol }).lit !== next) continue;
+          const cost = M.reduce((a, v, i) => a + ((v - S.M[i] + 3) % 3), 0); if (!best || cost < best.cost) best = { cost, M }; }
+        if (best) { const i = best.M.findIndex((v, k) => v !== S.M[k]); if (i >= 0) return { obj: mirrors[i], words: [words] }; } }
       return { obj: next === 0 ? mirrors[0] : S.pol.every(Boolean) ? mirrors[next === 1 ? 3 : 2] : wallPanels[S.pol.findIndex((p) => !p)], words: [words] };
     }
     if (S.player === 'LION' || S.player === 'ST1' || S.player === 'ST2') return { obj: gong, words: ['Watch the gong: when it swings, the hornets stir. Step up between gusts.'] };
@@ -481,7 +493,9 @@ function build(E) {
     if (finaleT >= 0) { const k = Math.min(1, finaleT / 4); const mid = F[0].clone().lerp(F[2], 0.5); return { target: F[2].clone().lerp(mid, k), zoom: Z[2] + (0.42 - Z[2]) * k, k: 2 }; }
     let a = L.areaOf(S.player) - 1, target = F[a].clone(), zoom = Z[a];
     const c = walkCur; if (c && c.e && c.e.kind === 'climb' && c.d > 0) { const ta = L.areaOf(c.to) - 1, fa = L.areaOf(c.from) - 1; const k0 = c.d / c.lens[c.lens.length - 1]; const k = k0 * k0 * (3 - 2 * k0); target = F[fa].clone().lerp(F[ta], k); zoom = Z[fa] + (Z[ta] - Z[fa]) * k; a = fa + (ta - fa) * k; }
-    return { target, zoom, k: a, pz: [1.15, 0.82, 1.0][a] };
+    const atMirrors = a === 1 && (S.player === 'L_mid' || S.player === 'GATE2');
+    if (a === 1 && /^S_/.test(S.player) && innerWidth / innerHeight < 0.8) return { target: P('S_mid').lerp(P('S_mid2'), 0.5).setY(2.6), zoom, k: a, pz: 1.0 }; // phones: keep both flights of the iron stair in view // on phones, come in close at the mirrors so each is big enough to tap
+    return { target, zoom, k: a, pz: atMirrors ? 1.45 : [1.15, 0.82, 1.0][a] };
   }
   const sky = [{ sun: new THREE.Color(0xfff2e0), hemi: new THREE.Color(0xeef4ee), fog: new THREE.Color(0xe6eee6) }, { sun: new THREE.Color(0xfffbe8), hemi: new THREE.Color(0xfaf2dc), fog: new THREE.Color(0xf0ead8) },
     { sun: new THREE.Color(0xffc890), hemi: new THREE.Color(0xf3dcc0), fog: new THREE.Color(0xf0dcc0) }, { sun: new THREE.Color(0xd08080), hemi: new THREE.Color(0xa080a8), fog: new THREE.Color(0x9a7a9a) }];

@@ -124,7 +124,7 @@ function build(E) {
   const mistOn = (i, t = mistClock) => Math.sin((t / MIST_T) * Math.PI * 2 + i * Math.PI) > -0.15;
 
   // ---- the weighing shed on the top terrace: a balance scale and six sacks
-  const shed = new THREE.Group(); shed.position.copy(P('T3')).add(new THREE.Vector3(-1.6, -0.06, -1.3)); scene.add(shed);
+  const shed = new THREE.Group(); shed.position.copy(P('T3')).add(new THREE.Vector3(-1.6, -0.06, -1.3)); shed.rotation.y = Math.PI / 4; scene.add(shed); // turned to face the view, so the six sacks spread across the screen
   { for (const [x, z] of [[-1.4, -0.9], [1.4, -0.9], [-1.4, 0.9], [1.4, 0.9]]) { const p = mesh(new THREE.BoxGeometry(0.14, 2.4, 0.14), mat(PAL.woodDark)); p.position.set(x, 1.2, z); shed.add(p); }
     const roof = mesh(new THREE.BoxGeometry(3.4, 0.1, 2.4), mat(PAL.roofGreen)); roof.position.y = 2.45; roof.rotation.x = 0.12; shed.add(roof);
     const bench = mesh(new THREE.BoxGeometry(2.8, 0.1, 0.6), mat(PAL.wood)); bench.position.set(0, 0.55, -0.6); shed.add(bench); }
@@ -135,7 +135,7 @@ function build(E) {
     const w = mesh(new THREE.CylinderGeometry(0.16, 0.18, 0.28, 10), mat(0x8a6a2a)); w.position.set(0.75, -0.55, 0); beam.add(w); const wl = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.12), new THREE.MeshBasicMaterial({ map: cardTex('20 kg', '#8a6a2a', '#fff3c0') })); wl.position.set(0.75, -0.55, 0.19); beam.add(wl); }
   const sacks = L.SACKS.map((w, i) => { const g = new THREE.Group(); const body = mesh(new THREE.CylinderGeometry(0.16 + w * 0.012, 0.2 + w * 0.012, 0.35 + w * 0.02, 10), mat(0xd8c09a)); body.position.y = 0.2; g.add(body);
     const lab = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.16), new THREE.MeshBasicMaterial({ map: cardTex(w + ' kg', '#f3e6c4', '#5a4632') })); lab.position.set(0, 0.25, 0.26); g.add(lab);
-    g.userData.home = new THREE.Vector3(-1.25 + i * 0.42, 0.6, -0.6); g.position.copy(g.userData.home); shed.add(g); tag(g, { item: 'sack' + i }); items['sack' + i] = g; return g; });
+    g.userData.home = new THREE.Vector3(-1.3 + i * 0.5, 0.6, -0.6); g.position.copy(g.userData.home); shed.add(g); tag(g, { item: 'sack' + i }); items['sack' + i] = g; return g; });
   const basket = mesh(new THREE.CylinderGeometry(0.22, 0.17, 0.3, 10, 1, true), mat(0xb8925a, { side: THREE.DoubleSide })); basket.visible = false; shed.add(basket);
 
   // ---- the aerial ropeway: tower and wire from the top terrace down to the factory, hook carriage, counterweight platform
@@ -199,6 +199,7 @@ function build(E) {
     tag(g, { item: 'st' + i }); items['st' + i] = g; stations.push(g); }
   const runLever = new THREE.Group(); runLever.position.set(3.2, 0, 3.4); scene.add(runLever);
   { const b = mesh(new THREE.BoxGeometry(0.3, 0.6, 0.3), mat(0x555555)); b.position.y = 0.3; runLever.add(b); const h = mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.8, 6), mat(0xc8423b)); h.position.y = 0.9; h.rotation.z = 0.5; runLever.add(h); runLever.userData.h = h; const bc = beacon(0xffd27a, 2.4); runLever.add(bc); runLever.userData.beacon = bc; }
+  { const hit = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.6, 0.9), new THREE.MeshBasicMaterial({ visible: false })); hit.position.y = 0.75; runLever.add(hit); } // a generous tap area
   tag(runLever, { item: 'run' }); items.run = runLever;
   // ---- the blending yard: four grade bins, nine chests, the broker's order letter, the seal stamp
   const GRADE_NAMES = { B: 'BOP', F: 'FBOP', D: 'DUST', N: 'FANNINGS' };
@@ -206,7 +207,7 @@ function build(E) {
     const tea = mesh(new THREE.BoxGeometry(0.7, 0.05, 0.7), mat([0x3a2a1a, 0x4a3a22, 0x2a1e14, 0x5a4630][i])); tea.position.y = 0.78; g.add(tea);
     const BIN_COL = ['#c8423b', '#2f6db4', '#7a5a3a', '#8a8a2a'][i]; const post = mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.2, 5), mat(0x6e4a30)); post.position.set(0, 1.4, -0.3); g.add(post);
     const lab = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 0.42), new THREE.MeshBasicMaterial({ map: cardTex(GRADE_NAMES[k], BIN_COL, '#ffffff'), side: THREE.DoubleSide })); lab.position.set(0, 2.1, -0.3); g.add(lab); g.userData.sign = lab;
-    const front = new THREE.Mesh(new THREE.PlaneGeometry(0.72, 0.3), new THREE.MeshBasicMaterial({ map: cardTex(GRADE_NAMES[k], BIN_COL, '#ffffff') })); front.position.set(0, 0.45, 0.41); g.add(front); tag(g, { item: 'bin' + k }); items['bin' + k] = g; bins[k] = g; });
+    const front = new THREE.Mesh(new THREE.PlaneGeometry(0.72, 0.3), new THREE.MeshBasicMaterial({ map: cardTex(GRADE_NAMES[k], BIN_COL, '#ffffff') })); front.position.set(0, 0.45, 0.41); g.add(front); { const hit = new THREE.Mesh(new THREE.BoxGeometry(0.95, 2.6, 0.95), new THREE.MeshBasicMaterial({ visible: false })); hit.position.y = 1.2; g.add(hit); } tag(g, { item: 'bin' + k }); items['bin' + k] = g; bins[k] = g; });
   const chestGroup = new THREE.Group(); chestGroup.position.set(8.4, 0, 6.0); scene.add(chestGroup); const chestMeshes = [];
   for (let i = 0; i < 9; i++) { const c = mesh(new THREE.BoxGeometry(0.5, 0.45, 0.5), mat(0xa8744a)); c.position.set((i % 3) * 0.56 - 0.56, 0.23 + Math.floor(i / 3) * 0.0, Math.floor(i / 3) * 0.56 - 0.56); c.visible = false; chestGroup.add(c); chestMeshes.push(c); }
   const clearLever = new THREE.Group(); clearLever.position.set(4.2, 0, 8.6); scene.add(clearLever); { const b = mesh(new THREE.BoxGeometry(0.3, 0.5, 0.3), mat(0x555555)); b.position.y = 0.25; clearLever.add(b); const h = mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.6, 6), mat(0x888888)); h.position.y = 0.7; clearLever.add(h); } tag(clearLever, { item: 'binClear' }); items.binClear = clearLever;
@@ -258,7 +259,7 @@ function build(E) {
   board.position.copy(P('GATE')).add(new THREE.Vector3(-1.2, 1.3, 1.6)); board.rotation.y = 0.2; scene.add(board);
   const clockFace = (txt) => canvasTex(128, 128, (x) => { x.fillStyle = '#f3efe6'; x.beginPath(); x.arc(64, 64, 60, 0, 7); x.fill(); x.lineWidth = 5; x.strokeStyle = '#3a2a1a'; x.stroke(); x.fillStyle = '#3a2a1a'; x.font = 'bold 32px Nunito Sans, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(txt, 64, 66); });
   const stationClock = new THREE.Mesh(new THREE.CircleGeometry(0.35, 20), new THREE.MeshBasicMaterial({ map: clockFace('3:14') })); stationClock.position.copy(a2(-8.6, trackZ + 1.7, 2.2)); scene.add(stationClock);
-  const answers = {}; Object.entries(L.TIMES).forEach(([k, t], i) => { const g = new THREE.Group(); g.position.copy(P('GATE')).add(new THREE.Vector3(-0.6 + i * 0.6, 0, 2.3)); scene.add(g);
+  const answers = {}; Object.entries(L.TIMES).forEach(([k, t], i) => { const g = new THREE.Group(); g.position.copy(P('GATE')).add(new THREE.Vector3(-0.9 + i * 0.9, 0, 3.2 - i * 0.9)); scene.add(g); // spread across the screen
     const post = mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.0, 6), mat(0x6e4a30)); post.position.y = 0.5; g.add(post); const f = new THREE.Mesh(new THREE.CircleGeometry(0.26, 18), new THREE.MeshBasicMaterial({ map: clockFace(t) })); f.position.y = 1.2; g.add(f);
     const hit = new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 6), new THREE.MeshBasicMaterial({ visible: false })); hit.position.y = 1.1; g.add(hit); tag(g, { item: k }); items[k] = g; answers[k] = g; });
   // signal box with an outdoor lever frame, and two signal posts
@@ -519,7 +520,12 @@ function build(E) {
   /* ---------- camera, time, motion ---------- */
   const tod = { k: 0 }; let clock2 = 0;
   function focus() { let f = L.areaOf(S.player) === 2 ? 1 : 0; if (riding) { const d = roadB.clone().sub(roadA); f = THREE.MathUtils.clamp(girl.position.clone().sub(roadA).dot(d) / d.lengthSq(), 0, 1); }
-    const k = f * f * (3 - 2 * f); return { target: new THREE.Vector3(0.5, 1.6, 0).lerp(A2.clone().add(new THREE.Vector3(0, 1.2, 0)), k), zoom: 1 - 0.08 * k, k, pz: 1.02 - 0.18 * k }; }
+    const k = f * f * (3 - 2 * f);
+    // on phones held upright, come right in at the factory so each machine and bin is big enough to tap
+    const close = { F_door: ['st0', 'st4', 2.2], F_yard: ['binB', 'binN', 2.2], T3: ['sack0', 'sack5', 2.6], GATE: ['tA', 'tC', 2.4] }[S.player];
+    if (!riding && close && innerWidth / innerHeight < 0.8) { const a = items[close[0]].getWorldPosition(new THREE.Vector3()), b = items[close[1]].getWorldPosition(new THREE.Vector3());
+      return { target: a.lerp(b, 0.5).add(new THREE.Vector3(0, 0.8, 0)), zoom: 1, k, pz: close[2] }; }
+    return { target: new THREE.Vector3(0.5, 1.6, 0).lerp(A2.clone().add(new THREE.Vector3(0, 1.2, 0)), k), zoom: 1 - 0.08 * k, k, pz: 1.02 - 0.18 * k }; }
   const skyA = { sun: new THREE.Color(0xf4f2ea), hemi: new THREE.Color(0xeef2ee), fog: new THREE.Color(0xe6ece4) };
   const skyB = { sun: new THREE.Color(0xffc890), hemi: new THREE.Color(0xf3dcc0), fog: new THREE.Color(0xf0dcc0) };
   const skyC = { sun: new THREE.Color(0xd08080), hemi: new THREE.Color(0xa080a8), fog: new THREE.Color(0x9a7a9a) };

@@ -27,7 +27,7 @@ body.yala.won{--sky-top:#3d3463;--sky-mid:#b8698a;--sky-bot:#f0a060}
 #listen.on{display:flex}#listen i{display:inline-block;width:5px;margin-left:2px;border-radius:2px;background:#c9b9a8;vertical-align:bottom}#listen i.lit{background:#c8643c}
 #signs b{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft)}
 #notesBtn{display:none;position:fixed;left:12px;bottom:12px;z-index:7;width:46px;height:46px;border-radius:12px;border:0;place-items:center;color:var(--ink);pointer-events:auto}#notesBtn svg{width:22px;height:22px}
-@media (max-width:600px), (max-height:500px){#signs{display:none;left:12px;right:12px;bottom:76px;max-width:none;pointer-events:auto}#signs.open{display:block}#notesBtn{display:grid}#listen{bottom:auto;top:118px}}`;
+@media (max-width:600px), (max-height:500px){#compass{top:auto;bottom:140px;right:12px;width:52px;height:52px}#signs{display:none;left:12px;right:12px;bottom:76px;max-width:none;pointer-events:auto}#signs.open{display:block}#notesBtn{display:grid}#listen{top:auto;bottom:136px;left:12px;transform:none}}`;
 
 export default {
   heroGlb: HERO_GLB, slots: SLOTS, icons: ICONS, logic: L,
@@ -455,8 +455,9 @@ function build(E) {
   function unreachable(what) { if (what === 'calfFind') label('Follow the trail to find the calf. Read the signs at each crossroads.', 3600); }
   function onNothing() {}
   function hintTarget() {
-    if (!S.calf && S.player === 'G_calf' && S.branches < 3) { const b = branches.find((x) => x.visible); return { obj: b, words: ['Fallen branches lie at the dead ends of the wrong trails. Bring three back for a ramp.'] }; }
+    if (!S.calf && S.player === 'G_calf' && S.branches < 3) { const b = branches.find((x) => x.visible); return { obj: b, words: ['Fallen branches lie near the dead ends of the wrong trails. Tap them wherever you can see them: you need three for a ramp.'] }; }
     if (!S.calf && TRAIL.indexOf(S.player) === TRAIL.length - 1 - 0 && S.branches < 3) return { obj: branches.find((x) => x.visible), words: ['Find three fallen branches.'] };
+    if (!S.calf && S.branches >= 3) return { obj: calf.visible ? calf : P('G_calf') && calfThicket, words: ['You have three branches. Tap the calf in the gully to build it a ramp.'] };
     if (S.calf === 'follow' && !S.drank && L.areaOf(S.player) === 1) return { obj: rockPool, words: ['Lead the calf to the rock pool for a drink.'] };
     if (L.areaOf(S.player) === 2 && S.notes < 3) { const n = notes.find((x) => x.visible); return { obj: n, words: ['The rangers left sighting slips around the camp and the plain. Look by the tents, the lone tree and the track posts.'] }; }
     if (!S.calf) { // next correct crossroads on the trail

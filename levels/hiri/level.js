@@ -471,7 +471,7 @@ function build(E) {
         tide.target = S.tideLow ? LOW : HIGH; if (S.tideLow) setTimeout(() => sparkle(paddle, 2), 1600);
         if (r === 'tideHighBoard') setTimeout(fetchBoard, 1500); break; }
       case 'gotPaddle': paddle.visible = false; carriedPaddle.visible = true; E.sfx.pickup(); break;
-      case 'fisherNeeds': bubble(fisher, 'float', { count: 4, filled: S.floats, offset: 1.6 }); setTimeout(() => bubble(fisher, 'paddle', { offset: 1.6 }), 2900); bump(); break;
+      case 'fisherNeeds': metFisher = true; bubble(fisher, 'float', { count: 4, filled: S.floats, offset: 1.6 }); setTimeout(() => bubble(fisher, 'paddle', { offset: 1.6 }), 2900); bump(); break;
       case 'fisherWaits': carriedPaddle.visible = false; giveFloats(); bubble(fisher, 'wave', { offset: 1.6 }); E.sfx.place(); E.sfx.splash(); pushCanoe(); break;
       case 'fisherGoes': carriedPaddle.visible = false; giveFloats(); E.sfx.place(); E.sfx.splash(); pushCanoe(); setTimeout(fetchBoard, 1200); break;
       case 'gotBoard': board.visible = false; carriedBoard.visible = true; E.sfx.pickup(); bubble(girl, 'wave', { offset: 2.1 }); setTimeout(() => { sparkle(surfWave, 3); label('A wave is building in the bay. <b>Tap the glowing wave</b> to paddle out and ride it.', 5200); }, 2200); break;
@@ -535,11 +535,12 @@ function build(E) {
     else if (what === 'j1') { label('That junction box is high up on the pole. There’s no way up from the street.', 3800); }
     else if (what === 'fisher' || what === 'owner') E.bump();
   }
+  let metFisher = false; // once you've heard what he needs, the hint moves on to the floats
   function hintTarget() {
     const f = (i) => floats[i], left = [0, 1, 2, 3].filter((i) => !S.floatTaken[i]);
     if (!S.won && L.areaOf(S.player) === 1 && S.player !== 'B_point') {
       if (!S.fisherOk) {
-        if (S.floats === 0 && !S.hasPaddle) return { obj: fisher, words: ['The fisherman by the blue canoe needs help. Tap him.'] };
+        if (S.floats === 0 && !S.hasPaddle && !metFisher) return { obj: fisher, words: ['The fisherman by the blue canoe needs help. Tap him.'] };
         const vis = left.filter((i) => (i !== 2 || S.palm1) && (i !== 3 || S.tideLow));
         if (vis.length) return { obj: f(vis[0]), words: ['Orange net floats hide around the bay: at the café, behind the canoe, in a palm and in the rock pool. Turn the view.'] };
         if (!S.palm1) return { obj: palm1, words: ['Something orange is tangled in a palm crown. Tap the palm to shake it.'] };

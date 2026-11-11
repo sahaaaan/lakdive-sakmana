@@ -31,6 +31,8 @@ const CSS = `  :root{ --sky-top:#e8d9cf; --sky-mid:#f0e6dc; --sky-bot:#d5e0e0; -
   .btn{pointer-events:auto;border:none;cursor:pointer;width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.9);color:var(--ink);display:grid;place-items:center;box-shadow:0 2px 8px rgba(90,60,45,.1);transition:transform .15s, background .2s}
   .btn:hover{background:#fff}.btn:active{transform:scale(.92)} .btn svg{width:22px;height:22px}
   #hintBtn.glow{box-shadow:0 0 0 4px rgba(217,168,78,.35),0 2px 8px rgba(90,60,45,.1)}
+  #resumeVeil{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:linear-gradient(var(--sky-top),var(--sky-bot));color:var(--ink);text-align:center;font-size:16px;line-height:1.6;transition:opacity .6s}
+  #resumeVeil b{font-size:22px;font-weight:600} #resumeVeil .bar{width:180px;height:4px;margin:14px auto 0;border-radius:2px;background:rgba(122,96,82,.18);overflow:hidden} #resumeVeil .bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s} #resumeVeil.out{opacity:0;pointer-events:none}
   #toast{position:absolute;left:50%;bottom:28px;transform:translate(-50%,10px);opacity:0;max-width:min(460px,calc(100vw - 180px));text-align:center;padding:10px 16px;font-size:14px;line-height:1.4;transition:opacity .35s, transform .35s;pointer-events:none}
   #toast.show{opacity:1;transform:translate(-50%,0)}
   #toast em{font-family:"Cormorant Garamond",serif;font-size:18px;font-style:italic}
@@ -55,7 +57,7 @@ const CSS = `  :root{ --sky-top:#e8d9cf; --sky-mid:#f0e6dc; --sky-bot:#d5e0e0; -
   #sndMute{border:none;cursor:pointer;border-radius:999px;padding:7px 12px;font:700 13px "Nunito Sans";background:var(--accent);color:#fff}
   #sndMute.off{background:#cbbfb6}
   @keyframes rise{from{opacity:0;transform:translateY(6px) scale(.9)}to{opacity:1;transform:none}}
-  @media (max-width:600px), (max-height:500px){ #title{max-width:calc(100vw - 92px)} #title .obj{font-size:12.5px} .panel{padding:22px 18px 18px} .panel p{font-size:14px} #sndPanel{right:12px;bottom:76px}
+  @media (max-width:600px), (max-height:500px){ #title{max-width:calc(100vw - 92px)} #inv{top:12px;right:12px;flex-direction:column} #title .obj{font-size:12.5px} .panel{padding:22px 18px 18px} .panel p{font-size:14px} #sndPanel{right:12px;bottom:76px}
     #title .t{font-size:20px} #inv{padding:6px;gap:4px} .slot{width:38px;height:38px} .slot svg{width:22px;height:22px}
     #view{right:12px;bottom:12px;padding:6px} #toast{bottom:84px;max-width:calc(100vw - 32px)} .panel h2{font-size:38px} }`;
 
@@ -281,6 +283,7 @@ export function run(L) {
   function interactAt(what) {
     const spot = logic.SPOTS[what];
     if (hero.action || (V.busy && V.busy())) return;
+    if (spot === undefined || spot === null) rec({ u: what }); else recMove({ i: what });
     if (spot === undefined || spot === null) { doInteract(what); return; } // usable from anywhere
     if (S.player === spot && !walker.cur) { act(what); return; }
     if (!startWalk(spot, what)) { if (V.unreachable) V.unreachable(what); noPath(what); }
@@ -288,7 +291,7 @@ export function run(L) {
 
   /* ---------- win ---------- */
   function win() {
-    chime(); document.body.classList.add('won');
+    clearRun(); chime(); document.body.classList.add('won');
     if (V.onWin) V.onWin();
     if (EMBED) parent.postMessage({ pahana: 'won', chapter: meta.chapter }, '*');
     setTimeout(() => {
@@ -299,9 +302,50 @@ export function run(L) {
     }, meta.winDelay ?? 7000);
   }
 
+
+  /* ---------- saving: every move inside a chapter is kept, so a reload (or a phone that drops the tab) carries on where she was ---------- */
+  const RUN_KEY = 'lakdive.run.v1.' + (meta.chapter ?? meta.place ?? location.pathname);
+  const runLog = []; let replaying = false, quietUntil = 0;
+  function loadRun() { try { const r = JSON.parse(localStorage.getItem(RUN_KEY)); return r && Array.isArray(r.log) ? r.log : null; } catch (e) { return null; } }
+  function saveRun() { try { localStorage.setItem(RUN_KEY, JSON.stringify({ log: runLog, at: Date.now() })); } catch (e) {} }
+  function clearRun() { try { localStorage.removeItem(RUN_KEY); } catch (e) {} }
+  // a new walk while she is still walking replaces the old one once she reaches the next stone, exactly as the walker does it
+  function mark() { return { cur: walker.cur && walker.cur.to, queued: !!walker.queued }; }
+  function recMove(e, m) { if (!m || m === true) m = m === true ? lastMark : mark(); if (replaying || !started) return;
+    let k = runLog.length - 1; while (k >= 0 && runLog[k].w === undefined && runLog[k].i === undefined) k--; // the walk in progress
+    if (k >= 0 && m.queued) runLog.splice(k, 1); else if (k >= 0 && m.cur) runLog[k] = { w: m.cur };
+    rec(e); }
+  let lastMark = { cur: null, queued: false };
+  function rec(e) { if (replaying || !started || document.body.classList.contains('won')) return; runLog.push(e); saveRun(); }
+  const nextFrame = () => new Promise((r) => requestAnimationFrame(() => r()));
+  async function settle(maxMs = 20000) { const t0 = performance.now(); let calm = 0;
+    while (performance.now() - t0 < maxMs) { await nextFrame(); const busy = walker.cur || walker.queued || anims.length || hero.action || (V.busy && V.busy()); calm = busy ? 0 : calm + 1; if (calm >= 4) return; } }
+  async function resume(log) {
+    replaying = true; const veil = document.createElement('div'); veil.id = 'resumeVeil';
+    veil.innerHTML = '<div><b>Welcome back</b><br>Picking up where you left off…<div class="bar"><i></i></div></div>'; document.body.appendChild(veil);
+    const bar = veil.querySelector('i'); timeScale.k = 20; if (E.audio && E.audio.quiet) E.audio.quiet(true);
+    try {
+      await settle();
+      for (let n = 0; n < log.length; n++) {
+        const e = log[n]; bar.style.width = (100 * (n + 1) / log.length).toFixed(0) + '%';
+        if (e.r) { cam.azTo += e.r * Math.PI / 2; for (let k = 0; k < 6; k++) await nextFrame(); }
+        else if (e.i !== undefined || e.u !== undefined) interactAt(e.i ?? e.u);
+        else if (e.w !== undefined) startWalk(e.w);
+        else if (e.H !== undefined && V.onHandle) V.onHandle(e.H, e.d);
+        else if (e.h !== undefined && V.tapHidden) { const o = pickables.find((m) => m.userData.hidden === e.h); V.tapHidden(e.h, o); }
+        runLog.push(e); await settle();
+      }
+    } catch (err) { console.warn('resume stopped early', err); }
+    timeScale.k = 1; replaying = false; quietUntil = performance.now() + 6000; saveRun(); refreshHUD();
+    cam.az = cam.azTo; if (E.audio && E.audio.quiet) E.audio.quiet(false);
+    veil.classList.add('out'); setTimeout(() => veil.remove(), 700);
+    const el = $('toast'); el.innerHTML = 'Welcome back. You’re right where you left off.'; el.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 3600);
+    lastProgress = clock.elapsedTime;
+  }
+
   /* ---------- HUD ---------- */
   let toastTimer;
-  function label(html, ms = 2600) { const el = $('toast'); el.innerHTML = html; el.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), ms); }
+  function label(html, ms = 2600) { if (replaying || performance.now() < quietUntil) return; const el = $('toast'); el.innerHTML = html; el.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), ms); }
   function refreshHUD() {
     $('objective').textContent = logic.objective(S);
     const inv = V.inventory ? V.inventory(S) : {};
@@ -315,11 +359,11 @@ export function run(L) {
     sparkle(h.obj, 3); lastHint = { at: now, obj: h.obj }; $('hintBtn').classList.remove('glow');
   }
   $('hintBtn').onclick = (e) => { e.stopPropagation(); ensureAudio(); hint(); };
-  $('camL').onclick = () => { cam.azTo -= Math.PI / 2; click(); };
-  $('camR').onclick = () => { cam.azTo += Math.PI / 2; click(); };
+  $('camL').onclick = () => { cam.azTo -= Math.PI / 2; rec({ r: -1 }); click(); };
+  $('camR').onclick = () => { cam.azTo += Math.PI / 2; rec({ r: 1 }); click(); };
   addEventListener('keydown', (e) => { if (e.key === 'q' || e.key === 'Q') $('camL').click(); if (e.key === 'e' || e.key === 'E') $('camR').click(); });
   let started = false;
-  $('start').onclick = () => { ensureAudio(); $('intro').classList.add('hide'); started = true; lastProgress = clock.elapsedTime; invite(); if (meta.startLabel) label(meta.startLabel, 5200); };
+  $('start').onclick = () => { ensureAudio(); $('intro').classList.add('hide'); started = true; lastProgress = clock.elapsedTime; const saved = loadRun(); if (saved && saved.length) { resume(saved); return; } invite(); if (meta.startLabel) label(meta.startLabel, 5200); };
   $('again').onclick = () => location.reload();
   // inside the full game (an iframe of the journey map): the win screen leads on to the next chapter or back to the map
   if (EMBED) { $('again').textContent = 'Continue the journey'; $('again').onclick = () => parent.postMessage({ pahana: 'next', chapter: meta.chapter }, '*');
@@ -332,7 +376,7 @@ export function run(L) {
     if (new URLSearchParams(location.search).get('autostart') === '1') setTimeout(() => $('start') && $('start').click(), 50); }
   // restart: tap once to arm (the button turns red), tap again within 3 s to start the level over
   { let armed = 0; const rb = $('restart');
-    rb.onclick = () => { click(); if (performance.now() - armed < 3000) { location.reload(); return; } armed = performance.now(); rb.style.background = '#e8735a'; rb.style.color = '#fff'; label('Tap restart again to start this level over from the beginning.', 3000);
+    rb.onclick = () => { click(); if (performance.now() - armed < 3000) { clearRun(); location.reload(); return; } armed = performance.now(); rb.style.background = '#e8735a'; rb.style.color = '#fff'; label('Tap restart again to start this level over from the beginning.', 3000);
       setTimeout(() => { if (performance.now() - armed >= 2900) { rb.style.background = ''; rb.style.color = ''; } }, 3000); }; }
   let inviteObj = null;
   function invite() {
@@ -352,8 +396,8 @@ export function run(L) {
     if (!down) return; const dx = e.clientX - down.x, dy = e.clientY - down.y; const d = down; down = null;
     ensureAudio();
     // a handle (e.g. a terrace wheel): tap turns it one way, drag sideways or right-click picks the direction
-    if (d.handle && V.onHandle) { V.onHandle(d.handle, Math.abs(dx) > 25 ? Math.sign(dx) : (d.btn === 2 ? -1 : 1)); return; }
-    if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.5) { cam.azTo -= Math.sign(dx) * Math.PI / 2; click(); return; }
+    if (d.handle && V.onHandle) { const dir = Math.abs(dx) > 25 ? Math.sign(dx) : (d.btn === 2 ? -1 : 1); rec({ H: d.handle, d: dir }); V.onHandle(d.handle, dir); return; }
+    if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.5) { cam.azTo -= Math.sign(dx) * Math.PI / 2; rec({ r: -Math.sign(dx) }); click(); return; }
     if (Math.hypot(dx, dy) > 8) return;
     const hits = pickAt(e.clientX, e.clientY); if (!hits.length) return;
     const hidden = hits.find((h) => h.object.userData.hidden !== undefined);
@@ -361,13 +405,13 @@ export function run(L) {
   });
   function handleHit(h) {
     const u = h.object.userData;
-    if (u.hidden !== undefined) { lastProgress = clock.elapsedTime; return V.tapHidden(u.hidden, h.object); }
+    if (u.hidden !== undefined) { lastProgress = clock.elapsedTime; rec({ h: u.hidden }); return V.tapHidden(u.hidden, h.object); }
     if (u.item) return interactAt(u.item);
     if (u.surface) {
       const target = V.surfaceTarget(u.surface, h.point); if (!target) return;
       if (inviteObj) { scene.remove(inviteObj); inviteObj = null; }
       if (target === S.player && !walker.cur) return;
-      if (!startWalk(target)) { bump(); ripple(h.point, 0xd97a6a); } else ripple(h.point, 0xffffff);
+      lastMark = mark(); if (!startWalk(target)) { bump(); ripple(h.point, 0xd97a6a); } else { ripple(h.point, 0xffffff); recMove({ w: target }, true); }
     }
   }
   const ripples = [];
@@ -383,7 +427,7 @@ export function run(L) {
   const AKEY = 'lakdive.audio.v1';
   const aset = (() => { const d = { sfx: 0.8, amb: 0.8, muted: false }; try { return Object.assign(d, JSON.parse(localStorage.getItem(AKEY) || '{}')); } catch (e) { return d; } })();
   const saveAudio = () => { try { localStorage.setItem(AKEY, JSON.stringify(aset)); } catch (e) {} };
-  let AC = null, master = null, verb = null, sfxBus = null, ambBus = null, ambCtl = null, muted = aset.muted, audioGen = 0, stuck = false, wakeHooked = false;
+  let AC = null, master = null, verb = null, sfxBus = null, ambBus = null, ambCtl = null, muted = aset.muted, quietAudio = false, audioGen = 0, stuck = false, wakeHooked = false;
   function rebuildAudio() { const old = AC; AC = null; stuck = false; audioGen++; for (const k in NB) delete NB[k]; try { old && old.close(); } catch (e) {} ensureAudio(); }
   const NB = {};
   const SCALE = meta.scale || [293.66, 329.63, 369.99, 440.0, 493.88]; // D major pentatonic
@@ -405,7 +449,7 @@ export function run(L) {
       master = AC.createGain(); master.gain.value = 0; master.connect(comp);
       verb = AC.createConvolver(); verb.buffer = impulse(3.4, 2.4); verb.connect(master);
       sfxBus = bus(aset.sfx, 0.22, 1.6); ambBus = bus(aset.amb, 0.35, 0.5);
-      fadeMaster(muted ? 0 : 1, 2.5);
+      fadeMaster(muted || quietAudio ? 0 : 1, 2.5);
       ambCtl = (V.sound && V.sound(A)) || defaultAmbience(A);
       document.addEventListener('visibilitychange', () => { if (AC && document.hidden) AC.suspend().catch(() => {}); });
       if (!wakeHooked) { wakeHooked = true; // phones pause sound when the screen locks (iOS calls it "interrupted")
@@ -546,6 +590,7 @@ export function run(L) {
   /* --- surroundings toolkit, handed to V.sound(A) --- */
   const A = {
     get ctx() { return AC; }, note, rnd, osc, hiss, pluck, bell: bellV, pad, out, sfx: SFX, now,
+    quiet(on) { quietAudio = on; if (master) fadeMaster(on || muted ? 0 : 1, on ? 0.1 : 1.2); }, // hushed while a saved walk is replayed
     loop(o = {}) { // continuous filtered noise bed with an optional slow swell
       const s = AC.createBufferSource(); s.buffer = noise(o.color || 'pink', 6); s.loop = true;
       const f = AC.createBiquadFilter(); f.type = o.type || 'bandpass'; f.frequency.value = o.f || 600; f.Q.value = o.q ?? 0.7;
@@ -670,7 +715,7 @@ export function run(L) {
   }
   refreshHUD(); tick();
 
-  window.__game = { S, V, E, logic, timeScale, camera, cam, camTarget, THREE, girl, hero, walkTo: startWalk, interactAt, findPath: logic.findPath, hint,
-    pick: (x, y) => pickAt(x, y).slice(0, 4).map((h) => JSON.stringify(h.object.userData)), tapHidden: (k) => V.tapHidden(k),
+  window.__game = { S, V, E, logic, timeScale, camera, cam, camTarget, THREE, girl, hero, walkTo: (t) => { const m = mark(); const ok = startWalk(t); if (ok) recMove({ w: t }, m); return ok; }, interactAt, findPath: logic.findPath, hint,
+    pick: (x, y) => pickAt(x, y).slice(0, 4).map((h) => JSON.stringify(h.object.userData)), tapHidden: (k) => { rec({ h: k }); return V.tapHidden(k, pickables.find((m) => m.userData.hidden === k)); }, resuming: () => replaying || !!document.getElementById("resumeVeil"),
     isBusy: () => !!(walker.cur || anims.length || hero.action || (V.busy && V.busy())) };
 }

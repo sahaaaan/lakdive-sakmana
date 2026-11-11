@@ -905,6 +905,9 @@ function hintTarget() {
   const busy = () => !!rotating;
   function onHandle(R, dir) { turn(R, dir); }
   function surfaceTarget(R, point) {
+    if (R === 'P' && S.gateOpen) { // anywhere out along the causeway means: cross it
+      const a = nodePos('P_gate').setY(0), b = nodePos('G1').setY(0), ab = b.clone().sub(a), t = point.clone().setY(0).sub(a).dot(ab) / ab.lengthSq();
+      if (t > 0.2) return S.player === 'G1' ? 'P_gate' : 'G1'; }
     if (R === 'P') { let best = null, bd = 1e9; const ids = Object.keys(GN).concat(S.gateOpen ? ['G1'] : []); for (const id of ids) { const d = nodePos(id).setY(0).distanceTo(point.clone().setY(0)); if (d < bd) { bd = d; best = id; } } return best; }
     if (R === 'C') return 'C';
     const ang = R === 'G' ? 0 : ringGroups[R].rotation.y; const th = Math.atan2(point.x, point.z) - ang; return R + (((Math.round(th / STEP) % SLOTS) + SLOTS) % SLOTS);
