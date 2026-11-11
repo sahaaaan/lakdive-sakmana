@@ -388,7 +388,8 @@ export function run(L) {
   if (EMBED) { $('again').textContent = 'Continue the journey'; $('again').onclick = () => parent.postMessage({ pahana: 'next', chapter: meta.chapter }, '*');
     $('toMap').style.display = ''; $('toMap').onclick = () => parent.postMessage({ pahana: 'map', chapter: meta.chapter }, '*');
     // a chapter already finished earlier can be left at any time from a map button in the corner
-    if (new URLSearchParams(location.search).get('done') === '1') { const b = document.createElement('button'); b.className = 'btn'; b.title = 'Back to the map'; b.setAttribute('aria-label', 'Back to the map');
+    // the map button is always there now: progress inside the chapter is saved, so leaving is safe
+    { const b = document.createElement('button'); b.className = 'btn'; b.title = 'Back to the map'; b.setAttribute('aria-label', 'Back to the map');
       b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg>';
       b.onclick = () => parent.postMessage({ pahana: 'map', chapter: meta.chapter }, '*'); $('view').appendChild(b); }
     // the map plays the music between chapters; a level starts straight away, without its own title card
