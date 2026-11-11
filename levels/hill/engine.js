@@ -31,6 +31,7 @@ const CSS = `  :root{ --sky-top:#e8d9cf; --sky-mid:#f0e6dc; --sky-bot:#d5e0e0; -
   .btn{pointer-events:auto;border:none;cursor:pointer;width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.9);color:var(--ink);display:grid;place-items:center;box-shadow:0 2px 8px rgba(90,60,45,.1);transition:transform .15s, background .2s}
   .btn:hover{background:#fff}.btn:active{transform:scale(.92)} .btn svg{width:22px;height:22px}
   #hintBtn.glow{box-shadow:0 0 0 4px rgba(217,168,78,.35),0 2px 8px rgba(90,60,45,.1)}
+  #queenOffer{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:55;width:min(340px,calc(100vw - 32px));padding:18px 20px;text-align:center;font-size:14px;line-height:1.5;color:var(--ink)} #queenOffer b{font-size:18px} #queenOffer div{margin:12px 0 6px;display:flex;gap:8px;justify-content:center} #queenOffer .cta{margin:0} #queenOffer #qNo{background:#8a7a6a} #queenOffer small{color:var(--ink-soft)}
   #resumeVeil{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:linear-gradient(var(--sky-top),var(--sky-bot));color:var(--ink);text-align:center;font-size:16px;line-height:1.6;transition:opacity .6s}
   #resumeVeil b{font-size:22px;font-weight:600} #resumeVeil .bar{width:180px;height:4px;margin:14px auto 0;border-radius:2px;background:rgba(122,96,82,.18);overflow:hidden} #resumeVeil .bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s} #resumeVeil.out{opacity:0;pointer-events:none}
   #toast{position:absolute;left:50%;bottom:28px;transform:translate(-50%,10px);opacity:0;max-width:min(460px,calc(100vw - 180px));text-align:center;padding:10px 16px;font-size:14px;line-height:1.4;transition:opacity .35s, transform .35s;pointer-events:none}
@@ -88,6 +89,7 @@ export function run(L) {
 <div class="overlay" id="intro"><div class="panel card">
   <div class="kicker">Lakdive Sakmana · ${meta.chapterLabel || 'Chapter ' + meta.chapter}</div><h2>${meta.title}</h2><h3>${meta.tagline}</h3>
   <p style="font-size:15px;line-height:1.55;margin:0 0 12px">${meta.intro}</p>
+  ${(L.slots || []).some((x) => x.id === 'leaf') ? `<p style="font-size:13.5px;line-height:1.5;margin:0 0 12px;padding:8px 12px;border-radius:10px;background:rgba(217,190,138,.25)">🍃 ${meta.chapter === 'V' ? 'The last secret ola-leaf page is hidden in this chapter. If you found the other four, it brings a surprise.' : 'A secret ola-leaf page is hidden somewhere in this chapter. Find one in every chapter for a surprise in Chapter V.'}</p>` : ''}
   <ul style="text-align:left;font-size:14px;line-height:1.6;margin:0 0 18px;padding-left:20px;color:var(--ink-soft)">${meta.howto.map((h) => `<li>${h}</li>`).join('')}</ul>
   <button class="cta" id="start">Begin</button>
 </div></div>
@@ -183,17 +185,23 @@ export function run(L) {
   function hold(obj, bone, scale, pos) { obj.visible = false; held.push({ obj, bone, scale, pos }); if (hero.rig) attachHeld(held[held.length - 1]); return obj; }
   function attachHeld(h) { const b = hero.rig.bones[h.bone]; b.add(h.obj); h.obj.scale.setScalar(h.scale / HERO_SCALE); h.obj.position.set(...h.pos); }
   {
-    const bin = Uint8Array.from(atob(L.heroGlb), (c) => c.charCodeAt(0));
+    // the Kandyan queen's outfit (unlocked on the map by finding all five ola-leaf pages) replaces each chapter's own outfit
+    const wear = (() => { try { return new Set(JSON.parse(localStorage.getItem('lakdive.leaves.v1') || '[]')).size >= 5 && localStorage.getItem('lakdive.wardrobe.v1') === 'queen'; } catch (e) { return false; } })();
+    const glb = wear ? import('../queen.js').then((m) => m.default).catch(() => L.heroGlb) : Promise.resolve(L.heroGlb);
+    glb.then(loadHero);
+  }
+  // build (or swap in) her model: props she is carrying move over to the new rig
+  function loadHero(b64, then) { const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
     new GLTFLoader().parse(bin.buffer, './', (g) => {
       const model = g.scene; model.scale.setScalar(HERO_SCALE);
       model.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = false; o.frustumCulled = false; } });
+      if (hero.model) { held.forEach((h) => h.obj.parent && h.obj.parent.remove(h.obj)); girl.remove(hero.model); }
       girl.add(model); hero.model = model;
       const bones = {}; model.traverse((o) => { if (o.isBone) bones[o.name] = o; });
       hero.rig = { bones, landmarks: { SK: Object.keys(bones).filter((n) => /^skirt\d+_0$/.test(n)).length } };
       hero.sec = new Secondary(hero.rig);
-      held.forEach(attachHeld);
-    });
-  }
+      held.forEach(attachHeld); if (then) then();
+    }); }
   function playAction(name, { speed = 1.35, contact = 0.95, onContact, done } = {}) { hero.action = { name, t: 0, speed, contact, onContact, done, fired: false }; }
 
   /* ---------- context handed to the level ---------- */
@@ -242,7 +250,7 @@ export function run(L) {
     c.d += sp * dt;
     const Ln = c.lens[c.lens.length - 1];
     if (c.d >= Ln) {
-      S.player = c.to; stats.steps++;
+      S.player = c.to; stats.steps++; rec({ n: c.to });
       if (V.onArrive) V.onArrive(c.to, c.e, !walker.segs.length && !walker.queued); // last flag: she stops here
       refreshHUD();
       if (walker.queued) { const q = walker.queued; walker.queued = null; walker.cur = null; walker.segs = []; if (!startWalk(q.target, q.pending)) noPath(q.pending); return true; }
@@ -271,6 +279,7 @@ export function run(L) {
     playAction(kind, { contact: kind === 'pickup' ? 0.95 : 1.1, onContact: () => doInteract(what), done: () => { hero.reach = null; } });
   }
   function doInteract(what) {
+    rec({ a: what });
     const r = logic.interact(S, what);
     if (r === 'nothing') { V.onNothing && V.onNothing(what); return; }
     lastProgress = clock.elapsedTime;
@@ -283,7 +292,6 @@ export function run(L) {
   function interactAt(what) {
     const spot = logic.SPOTS[what];
     if (hero.action || (V.busy && V.busy())) return;
-    if (spot === undefined || spot === null) rec({ u: what }); else recMove({ i: what });
     if (spot === undefined || spot === null) { doInteract(what); return; } // usable from anywhere
     if (S.player === spot && !walker.cur) { act(what); return; }
     if (!startWalk(spot, what)) { if (V.unreachable) V.unreachable(what); noPath(what); }
@@ -304,22 +312,17 @@ export function run(L) {
 
 
   /* ---------- saving: every move inside a chapter is kept, so a reload (or a phone that drops the tab) carries on where she was ---------- */
-  const RUN_KEY = 'lakdive.run.v1.' + (meta.chapter ?? meta.place ?? location.pathname);
+  const RUN_KEY = 'lakdive.run.v2.' + (meta.chapter ?? meta.place ?? location.pathname) + (meta.saveV ? '.' + meta.saveV : ''); // a chapter bumps saveV when its map changes
   const runLog = []; let replaying = false, quietUntil = 0;
   function loadRun() { try { const r = JSON.parse(localStorage.getItem(RUN_KEY)); return r && Array.isArray(r.log) ? r.log : null; } catch (e) { return null; } }
   function saveRun() { try { localStorage.setItem(RUN_KEY, JSON.stringify({ log: runLog, at: Date.now() })); } catch (e) {} }
   function clearRun() { try { localStorage.removeItem(RUN_KEY); } catch (e) {} }
-  // a new walk while she is still walking replaces the old one once she reaches the next stone, exactly as the walker does it
-  function mark() { return { cur: walker.cur && walker.cur.to, queued: !!walker.queued }; }
-  function recMove(e, m) { if (!m || m === true) m = m === true ? lastMark : mark(); if (replaying || !started) return;
-    let k = runLog.length - 1; while (k >= 0 && runLog[k].w === undefined && runLog[k].i === undefined) k--; // the walk in progress
-    if (k >= 0 && m.queued) runLog.splice(k, 1); else if (k >= 0 && m.cur) runLog[k] = { w: m.cur };
-    rec(e); }
-  let lastMark = { cur: null, queued: false };
   function rec(e) { if (replaying || !started || document.body.classList.contains('won')) return; runLog.push(e); saveRun(); }
   const nextFrame = () => new Promise((r) => requestAnimationFrame(() => r()));
   async function settle(maxMs = 20000) { const t0 = performance.now(); let calm = 0;
     while (performance.now() - t0 < maxMs) { await nextFrame(); const busy = walker.cur || walker.queued || anims.length || hero.action || (V.busy && V.busy()); calm = busy ? 0 : calm + 1; if (calm >= 4) return; } }
+  function stepTo(n) { if (S.player === n) return; const e = edgeBetween(S.player, n); if (!e) { startWalk(n); return; }
+    walker.pending = null; walker.queued = null; walker.segs = [{ from: S.player, to: n }]; nextSeg(); }
   async function resume(log) {
     replaying = true; const veil = document.createElement('div'); veil.id = 'resumeVeil';
     veil.innerHTML = '<div><b>Welcome back</b><br>Picking up where you left off…<div class="bar"><i></i></div></div>'; document.body.appendChild(veil);
@@ -329,8 +332,8 @@ export function run(L) {
       for (let n = 0; n < log.length; n++) {
         const e = log[n]; bar.style.width = (100 * (n + 1) / log.length).toFixed(0) + '%';
         if (e.r) { cam.azTo += e.r * Math.PI / 2; for (let k = 0; k < 6; k++) await nextFrame(); }
-        else if (e.i !== undefined || e.u !== undefined) interactAt(e.i ?? e.u);
-        else if (e.w !== undefined) startWalk(e.w);
+        else if (e.n !== undefined) stepTo(e.n); // one stone at a time, along the very edge she really took
+        else if (e.a !== undefined) act(e.a);
         else if (e.H !== undefined && V.onHandle) V.onHandle(e.H, e.d);
         else if (e.h !== undefined && V.tapHidden) { const o = pickables.find((m) => m.userData.hidden === e.h); V.tapHidden(e.h, o); }
         runLog.push(e); await settle();
@@ -346,7 +349,23 @@ export function run(L) {
   /* ---------- HUD ---------- */
   let toastTimer;
   function label(html, ms = 2600) { if (replaying || performance.now() < quietUntil) return; const el = $('toast'); el.innerHTML = html; el.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), ms); }
+  let leafNoted = false;
+  function noteLeaf() { if (leafNoted || !(S.has && S.has.leaf)) return; leafNoted = true;
+    try { const k = 'lakdive.leaves.v1', a = JSON.parse(localStorage.getItem(k) || '[]'); if (!a.includes(meta.chapter)) { a.push(meta.chapter); localStorage.setItem(k, JSON.stringify(a)); } } catch (e) {}
+    if (EMBED) parent.postMessage({ pahana: 'leaf', chapter: meta.chapter }, '*');
+    let n = 0; try { n = new Set(JSON.parse(localStorage.getItem('lakdive.leaves.v1') || '[]')).size; } catch (e) {}
+    if (n >= 5 && !replaying) setTimeout(offerQueen, 2600); } // the fifth page: offer the royal outfit right away
+  function offerQueen() {
+    try { if (localStorage.getItem('lakdive.wardrobe.v1') === 'queen') return; } catch (e) {}
+    const box = document.createElement('div'); box.id = 'queenOffer'; box.className = 'card';
+    box.innerHTML = '<b>All five ola-leaf pages!</b><br>The old pages tell of a Kandyan queen. Her robes and crown are yours now.<div><button class="cta" id="qYes">👑 Wear them</button><button class="cta" id="qNo">Not now</button></div><small>You can change outfits any time from the journey map.</small>';
+    document.body.appendChild(box); ['pointerdown', 'pointerup'].forEach((t) => box.addEventListener(t, (e) => e.stopPropagation()));
+    $('qNo').onclick = () => { click(); box.remove(); };
+    $('qYes').onclick = () => { click(); box.remove(); try { localStorage.setItem('lakdive.wardrobe.v1', 'queen'); } catch (e) {}
+      import('../queen.js').then((m) => loadHero(m.default, () => { sparkle(girl, 4); chime(); label('The Kandyan queen walks on.', 3600); if (EMBED) parent.postMessage({ pahana: 'leaf', chapter: meta.chapter }, '*'); })).catch(() => label('The royal outfit could not be loaded.', 3000)); };
+  }
   function refreshHUD() {
+    noteLeaf();
     $('objective').textContent = logic.objective(S);
     const inv = V.inventory ? V.inventory(S) : {};
     for (const s of L.slots || []) { const v = inv[s.id]; $('s-' + s.id).classList.toggle('on', !!v); if (s.count) $('n-' + s.id).textContent = typeof v === 'string' ? v : (v || ''); }
@@ -411,7 +430,7 @@ export function run(L) {
       const target = V.surfaceTarget(u.surface, h.point); if (!target) return;
       if (inviteObj) { scene.remove(inviteObj); inviteObj = null; }
       if (target === S.player && !walker.cur) return;
-      lastMark = mark(); if (!startWalk(target)) { bump(); ripple(h.point, 0xd97a6a); } else { ripple(h.point, 0xffffff); recMove({ w: target }, true); }
+      if (!startWalk(target)) { bump(); ripple(h.point, 0xd97a6a); } else ripple(h.point, 0xffffff);
     }
   }
   const ripples = [];
@@ -715,7 +734,7 @@ export function run(L) {
   }
   refreshHUD(); tick();
 
-  window.__game = { S, V, E, logic, timeScale, camera, cam, camTarget, THREE, girl, hero, walkTo: (t) => { const m = mark(); const ok = startWalk(t); if (ok) recMove({ w: t }, m); return ok; }, interactAt, findPath: logic.findPath, hint,
+  window.__game = { S, V, E, logic, timeScale, camera, cam, camTarget, THREE, girl, hero, walkTo: startWalk, interactAt, findPath: logic.findPath, hint,
     pick: (x, y) => pickAt(x, y).slice(0, 4).map((h) => JSON.stringify(h.object.userData)), tapHidden: (k) => { rec({ h: k }); return V.tapHidden(k, pickables.find((m) => m.userData.hidden === k)); }, resuming: () => replaying || !!document.getElementById("resumeVeil"),
     isBusy: () => !!(walker.cur || anims.length || hero.action || (V.busy && V.busy())) };
 }

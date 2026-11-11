@@ -11,6 +11,7 @@ const J = (c, r) => V3(-6 + 4 * c, 0.06, -4 + 4 * r);
 // ---- area 2: the waterhole plain, a grid of tracks around the lone tree. North is -z, east is +x.
 export const A2C = V3(18.4, 0, -18.4);
 export const GRID = 2.2;
+const B = (deg, r) => { const a = deg * Math.PI / 180; return V3(A2C[0] + Math.sin(a) * r, 0.06, A2C[2] - Math.cos(a) * r); }; // bearing from the lone tree: 0 = north, 90 = east
 const W = (e, n) => V3(A2C[0] + e * GRID, 0.06, A2C[2] - n * GRID); // e tracks east, n tracks north of the lone tree
 
 export const NODES = {
@@ -22,17 +23,18 @@ export const NODES = {
   G_leo: V3(-9.8, 0.06, 0), G_peac: V3(-2, 0.06, 7.9), G_mom: V3(2, 0.06, -8.2), G_kid: V3(-6, 0.06, -8.2), G_kid2: V3(6, 0.06, 7.9), // two more young elephants that are not ours // more wrong trails: a leopard, a peacock, a calf that is with its mother
   B_bank: V3(9.4, 0.06, 4), R_far: V3(14.2, 0.06, 4),
   // area 2
-  D: W(0, -2), T: W(0, 0), N1: W(0, 1), N2: W(0, 2), N3: W(0, 3),
-  E12: W(1, 2), E22: W(2, 2), E32: W(3, 2), E13: W(1, 3), E23: W(2, 3), W13: W(-1, 3), W23: W(-2, 3),
+  D: W(0, -2), T: W(0, 0), N1: W(0, 1), N2: W(0, 2.2),
+  NEJ: B(42, 4.0), NWJ: B(-48, 4.0),                       // forks in the track
+  H1: B(26, 7.4), H2: B(66, 7.4), H3: B(-74, 7.4), H4: B(-16, 7.6), H5: B(108, 7.2), // five waterholes around the plain
   CAMP: W(-2, -1),
 };
-export const areaOf = (id) => (/^(D|T|N\d|E\d\d|W\d\d|CAMP)$/.test(id) ? 2 : 1);
-export const HERD_AT = { herd1: 'E23', herd2: 'E32', herd3: 'W23' }; // herd1: 3 north 2 east (the right one)
+export const areaOf = (id) => (/^(D|T|N\d|NEJ|NWJ|H\d|CAMP)$/.test(id) ? 2 : 1);
+export const HERD_AT = { herd1: 'H1', herd2: 'H2', herd3: 'H3', herd4: 'H4', herd5: 'H5' }; // herd1 (north-east) is the right one
 
 export function initialState() {
   return { player: 'J02', calf: null, /* null (not found) | 'follow' | node id where she told it to stay */ branches: 0, branchTaken: [false, false, false], drank: false, notes: 0, noteTaken: [false, false, false], won: false, has: { leaf: false } };
 }
-export const bridgeDown = (s) => s.calf === 'B_bank'; // the lever stone needs real weight: only the calf is heavy enough
+export const bridgeDown = (s) => s.calf === 'B_bank' || s.calf === 'R_far'; // a lever stone on each bank: the calf's weight on either one brings the bridge down // the lever stone needs real weight: only the calf is heavy enough
 
 export function edges(s) {
   const E = []; const line = (a, b, extra = {}) => E.push({ a, b, kind: 'line', ...extra });
@@ -48,9 +50,9 @@ export function edges(s) {
   if (bridgeDown(s)) line('B_bank', 'R_far', { kind: 'bridge' });
   if (s.calf === 'follow' && s.drank) E.push({ a: 'R_far', b: 'D', kind: 'jeep', ride: true, speed: 6 });
   // area 2
-  line('D', 'T'); line('T', 'N1'); line('N1', 'N2'); line('N2', 'N3');
-  line('N2', 'E12'); line('E12', 'E22'); line('E22', 'E32'); line('N3', 'E13'); line('E13', 'E23'); line('E22', 'E23');
-  line('N3', 'W13'); line('W13', 'W23'); line('D', 'CAMP', { via: [W(-2, -2)] });
+  line('D', 'T'); line('T', 'N1'); line('N1', 'N2'); line('N2', 'H4');
+  line('N1', 'NEJ'); line('NEJ', 'H1'); line('NEJ', 'H2'); line('NEJ', 'H5');
+  line('N1', 'NWJ'); line('NWJ', 'H3'); line('NWJ', 'H4'); line('D', 'CAMP', { via: [W(-2, -2)] });
   return E;
 }
 export function adjacency(s) {
@@ -66,9 +68,9 @@ export function findPath(s, from, to, extra = []) {
   return null;
 }
 // the calf can wade the river; she can't
-export const calfPath = (s, from, to) => findPath(s, from, to, [['B_bank', 'R_far']]);
+export const calfPath = (s, from, to) => findPath(s, from, to, s.drank ? [['B_bank', 'R_far'], ['R_far', 'D']] : [['B_bank', 'R_far']]); // once it has drunk, the ranger will drive back for a calf left by the river
 
-export const SPOTS = { calfFind: 'G_calf', calf: null, pool: 'G_pool', herd1: 'E23', herd2: 'E32', herd3: 'W23' };
+export const SPOTS = { calfFind: 'G_calf', calf: null, pool: 'G_pool', herd1: 'H1', herd2: 'H2', herd3: 'H3', herd4: 'H4', herd5: 'H5' };
 // fallen branches (area 1) and sighting slips (area 2) are tapped wherever you see them
 export function canTap(s, k) { if (k === 'leaf') return !s.has.leaf; if (k[0] === 'b') return !s.branchTaken[+k[1]]; if (k[0] === 'n') return !s.noteTaken[+k[1]]; return false; }
 export function tap(s, k) { if (!canTap(s, k)) return null; if (k === 'leaf') { s.has.leaf = true; return 'leaf'; } if (k[0] === 'b') { s.branchTaken[+k[1]] = true; s.branches++; return 'branch'; } s.noteTaken[+k[1]] = true; s.notes++; return 'note'; }
@@ -85,7 +87,7 @@ export function interact(s, what) {
       if (s.calf === 'follow') { s.calf = s.player; return 'calfStay'; }
       if (!calfPath(s, s.calf, s.player)) return 'calfCantReach';
       s.calf = 'follow'; return 'calfFollow';
-    case 'herd1': case 'herd2': case 'herd3':
+    case 'herd1': case 'herd2': case 'herd3': case 'herd4': case 'herd5':
       if (s.won) return 'nothing';
       if (s.calf !== 'follow') return 'herdNoCalf';
       if (s.notes < 3) return 'needNotes';

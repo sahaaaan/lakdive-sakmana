@@ -18,7 +18,7 @@ const ICONS = {
   hornet: ['M16 8a6 8 0 100 16 6 8 0 000-16z#e0b44a', 'M10 14h12v2H10zM10 18h12v2H10z#2a2018'],
   path: ['M12 4h8v24h-8z#d9c9a6'],
 };
-const SLOTS = [{ id: 'cloth', title: 'Painter’s cloth', svg: svg(ICONS.cloth) }, { id: 'verse', title: 'Mirror Wall verses', svg: svg(ICONS.verse), count: true },
+const SLOTS = [{ id: 'cloth', title: 'Painter’s cloth', svg: svg(ICONS.cloth) }, 
   { id: 'lotus', title: 'Fresco flowers (the order)', svg: svg(ICONS.lotus), count: true },
   { id: 'leaf', title: 'Ola-leaf page (secret)', svg: '<rect x="3" y="12" width="26" height="8" rx="2" fill="#d9be8a"/><path d="M6 15h18M6 17.5h14" stroke="#8a6a44" stroke-width="1"/>' }];
 const CSS = `body.sigi{--sky-top:#a8d4ea;--sky-mid:#eaf2ee;--sky-bot:#cfe2c0;--accent:#b0603a}
@@ -168,10 +168,7 @@ function build(E) {
     const tagTex = canvasTex(192, 72, (x) => { x.fillStyle = '#b0603a'; x.beginPath(); x.roundRect(4, 4, 184, 64, 30); x.fill(); x.fillStyle = '#fff'; x.font = 'bold 34px Nunito Sans, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('✦ wipe', 96, 39); });
     const wtag = new THREE.Sprite(new THREE.SpriteMaterial({ map: tagTex, transparent: true, depthTest: false })); wtag.scale.set(1.2, 0.45, 1); wtag.position.set(0, 1.75, 0.33); wtag.visible = false; g.add(wtag); g.userData.wtag = wtag;
     tag(g, { item: 'w' + i }); items['w' + i] = g; return g; });
-  // graffiti verses on the inner face of the wall: you only see them looking back from the rock side
-  const verses = [1, 4, 7].map((gx, i) => { const t = canvasTex(256, 128, (x) => { x.fillStyle = 'rgba(0,0,0,0)'; x.fillRect(0, 0, 256, 128); x.strokeStyle = '#6a3a24'; x.lineWidth = 2.4; for (let l = 0; l < 4; l++) { x.beginPath(); for (let k = 0; k < 20; k++) x.lineTo(20 + k * 11, 26 + l * 26 + Math.sin(k * 1.7 + l + i) * 5); x.stroke(); } });
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.55), new THREE.MeshBasicMaterial({ map: t, transparent: true })); m.position.copy(lp(gx, 4, 0.75)).add(new THREE.Vector3(0, 0, 0.15)); m.rotation.y = Math.PI; scene.add(m);
-    const hit = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 0.3), new THREE.MeshBasicMaterial({ visible: false })); hit.position.copy(m.position); scene.add(hit); tag(hit, { hidden: 'q' + i }); tag(m, { hidden: 'q' + i }); return m; });
+  const verses = []; // the optional Mirror Wall verses were taken out, so the ola-leaf page is the only extra
   // rocks in the light grid
   for (const [gx, gy] of L.ROCKS) boulder(0.6, lp(gx, gy, 0.5), PAL.rockGrey);
   // bronze mirrors
@@ -297,8 +294,9 @@ function build(E) {
     const b = mesh(new THREE.CylinderGeometry(0.26, 0.18, 0.22, 10), mat(0x8a5a3a)); b.position.y = 0.5; g.add(b); const st = mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.4, 6), mat(0x9a948a)); st.position.y = 0.2; g.add(st);
     for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2; const p = mesh(new THREE.SphereGeometry(0.09, 6, 4), mat(new THREE.Color(FL_COL[f]).getHex())); p.scale.set(1, 0.4, 0.7); p.position.set(Math.cos(a) * 0.13, 0.66, Math.sin(a) * 0.13); g.add(p); }
     const hit = new THREE.Mesh(new THREE.SphereGeometry(0.42, 8, 6), new THREE.MeshBasicMaterial({ visible: false })); hit.position.y = 0.5; g.add(hit); tag(g, { item: 'fl_' + f }); items['fl_' + f] = g; return g; });
-  // the ola-leaf page, tucked behind the throne (seen from the north side only)
-  const leaf = new THREE.Group(); leaf.position.copy(P('THRONE')).add(new THREE.Vector3(0.3, 0.4, -1.55)); scene.add(leaf);
+  // the ola-leaf page, tucked against the back wall of the sluice house in the water gardens (turn the view to see it).
+  // It's found early, so a player who has all five pages can wear the queen's outfit for the rest of the climb.
+  const leaf = new THREE.Group(); leaf.position.copy(house.position).add(new THREE.Vector3(0.6, 0.85, -0.78)); scene.add(leaf);
   { const l = mesh(new THREE.BoxGeometry(0.6, 0.04, 0.16), mat(0xd9be8a)); l.rotation.x = Math.PI / 2; l.rotation.y = 0.2; leaf.add(l); const hit = new THREE.Mesh(new THREE.SphereGeometry(0.42, 8, 6), new THREE.MeshBasicMaterial({ visible: false })); leaf.add(hit); }
   tag(leaf, { hidden: 'leaf' });
   for (const [x, z] of [[-3.8, 3.4], [4.0, 3.2]]) tree(at3(x, 0, z), 0.8);
@@ -447,7 +445,7 @@ function build(E) {
   function tapHidden(k) {
     const r = L.tap(S, k); if (!r) return; E.progress();
     if (r === 'verse') { const i = +k[1]; verses[i].material.opacity = 0.35; bell(880 + i * 110); label(['“The lady with the golden skin… she has stolen my heart.” A visitor scratched this 1,200 years ago.', '“I am Budal. I came with hundreds of people to see Sigiriya. Since all the others wrote poems, I did not!”', '“The wind blows, the hornets are angry: still I climbed to see the maidens.”'][i] + ` (verse ${S.verses.filter(Boolean).length}/3)`, 5200); }
-    if (r === 'leaf') { leaf.visible = false; E.sfx.found(4); label('<em>Puskola</em> · an ola-leaf page, tucked behind the king’s throne', 4000); }
+    if (r === 'leaf') { leaf.visible = false; E.sfx.found(4); label('<em>Puskola</em> · an ola-leaf page, tucked behind the sluice house', 4000); E.refresh(); }
     E.refresh();
   }
   const actionFor = { cloth: () => 'pickup', v0: () => null, v1: () => null, v2: () => null, v3: () => null, w0: () => 'place', w1: () => 'place', w2: () => 'place', w3: () => 'place',

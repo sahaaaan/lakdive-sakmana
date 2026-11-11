@@ -217,9 +217,12 @@ function build(E) {
   scene.updateMatrixWorld(true);
   for (let i = 0; i < 4; i++) { const f = netFloat(); f.position.copy(floatSpots[i]()); f.scale.setScalar(i === 2 ? 1.3 : 1.15); scene.add(f); floats.push(f);
     const hit = new THREE.Mesh(new THREE.SphereGeometry(0.42, 8, 6), new THREE.MeshBasicMaterial({ visible: false })); f.add(hit); tag(f, { hidden: 'f' + i }); f.userData.base = f.position.clone(); }
-  // secret: an ola-leaf page tucked in the café's thatch
-  const leaf = mesh(new THREE.BoxGeometry(0.5, 0.04, 0.14), mat(0xd9be8a)); leaf.position.set(-1.1, 2.15, -1.25); leaf.rotation.set(0.3, 0.4, 0.2); cafe.add(leaf);
-  { const hit = new THREE.Mesh(new THREE.SphereGeometry(0.35, 8, 6), new THREE.MeshBasicMaterial({ visible: false })); leaf.add(hit); } tag(leaf, { hidden: 'leaf' });
+  // secret: an ola-leaf page hidden up in the crown of one of the coconut palms behind the beach (not the float palm).
+  // Out of sight until that palm is shaken; then it flutters down onto the sand to be picked up.
+  const leafPalm = palms[10]; tag(leafPalm, { hidden: 'palm3' });
+  const leaf = mesh(new THREE.BoxGeometry(0.5, 0.04, 0.14), mat(0xd9be8a)); leaf.visible = false; scene.add(leaf);
+  { const hit = new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 6), new THREE.MeshBasicMaterial({ visible: false })); leaf.add(hit); } tag(leaf, { hidden: 'leaf' });
+  let leafDropped = false;
 
   /* ================= THE RED ROAD ================= */
   const tuk = new THREE.Group(); scene.add(tuk);
@@ -514,6 +517,13 @@ function build(E) {
   }
   // hidden taps
   function tapHidden(k, obj) {
+    if (k === 'palm3') { // the secret palm: shake it and the page drifts down
+      const cr = leafPalm.userData.crown; anims.push({ t: 0, dur: 0.6, lin: true, f: (e) => (cr.rotation.z = Math.sin(e * Math.PI * 5) * 0.12 * (1 - e)) }); E.sfx.flutter(9);
+      if (leafDropped || S.has.leaf) return; leafDropped = true; E.progress();
+      const from = cr.getWorldPosition(new THREE.Vector3()), to = leafPalm.position.clone().add(BC.clone().sub(leafPalm.position).setY(0).normalize().multiplyScalar(1.1)).setY(0.08);
+      leaf.position.copy(from); leaf.visible = true;
+      anims.push({ t: 0, dur: 2.2, lin: true, f: (e) => { leaf.position.lerpVectors(from, to, e); leaf.position.x += Math.sin(e * 9) * 0.35 * (1 - e); leaf.rotation.set(Math.sin(e * 7) * 0.6 * (1 - e), e * 3, 0); }, done: () => { leaf.rotation.set(0, 0.4, 0); sparkle(leaf, 2); } });
+      label('You shake the palm. Something pale drifts down from the fronds…', 3200); return; }
     const r = L.tap(S, k); if (!r) { if (k === 'f3' && !S.tideLow) label('Something orange glints under the water in the rock pool.', 3000); return; }
     E.progress();
     if (r === 'palmDrop') { const pm = k === 'palm1' ? palm1 : palm2; const thing = k === 'palm1' ? floats[2] : bulbs[3]; const to = (k === 'palm1' ? P('B_palm').add(polar(0.7, deg(205), 0.2)) : s2w(-8.4, 4.4, 0.25));

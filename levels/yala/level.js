@@ -32,7 +32,7 @@ body.yala.won{--sky-top:#3d3463;--sky-mid:#b8698a;--sky-bot:#f0a060}
 export default {
   heroGlb: HERO_GLB, slots: SLOTS, icons: ICONS, logic: L,
   meta: {
-    chapter: 'III', place: 'Yala', title: 'The Lost Calf', tagline: 'A baby elephant has lost its herd.', bodyClass: 'yala', css: CSS,
+    chapter: 'III', saveV: 2, place: 'Yala', title: 'The Lost Calf', tagline: 'A baby elephant has lost its herd.', bodyClass: 'yala', css: CSS,
     intro: 'On the morning drive, the ranger spots a baby elephant’s trail: it has wandered off alone. You’ll know it by the pink freckles on its ears and trunk. Read the signs on the red tracks to find it, bring it safely across the river, then find its family at the waterholes before dark.',
     howto: ['<b>Listen</b> at each crossroads (the Listen button): the louder the calf’s call, the closer you are.', '<b>Read the signs</b> at each crossroads (Tracker’s notes): the calf’s prints are small, round and <b>alone</b>, toes point the way it walked, broken branches show where it pushed through. Where the ground is baked hard there are no prints at all: listen.',
       '<b>Tap the calf</b> to tell it to stay or to follow you. It can do things you can’t.', '<b>Count</b>: the compass shows north. Count tracks from the lone tree, and count elephants.'],
@@ -73,7 +73,9 @@ function build(E) {
     trunk.add(mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 10, 0.13, 7), m));
     for (const sx of [-1, 1]) { const eye = mesh(new THREE.SphereGeometry(0.05, 6, 5), mat(0x2a211d)); eye.position.set(sx * 0.3, 0.1, 0.36); head.add(eye);
       if (tusks) { const t = mesh(new THREE.ConeGeometry(0.06, 0.6, 6), mat(0xf4ecd8)); t.position.set(sx * 0.18, -0.35, 0.45); t.rotation.x = 1.9; head.add(t); } }
-    if (freckles) { const pink = mat(0xe8a0a0); for (const sx of [-1, 1]) for (let k = 0; k < 7; k++) { const f = mesh(new THREE.SphereGeometry(0.07, 6, 4), pink); f.scale.set(0.5, 1, 1); f.position.set(sx * 0.53, -0.25 + hash(k, sx, 5) * 0.55, -0.4 + hash(k, sx, 6) * 0.5); head.add(f); }
+    if (freckles) { const pink = mat(0xf0a0b0);
+      for (const sx of [-1, 1]) { const ear = head.userData['ear' + (sx > 0 ? 'R' : 'L')]; const pe = mesh(new THREE.SphereGeometry(0.5, 10, 8), pink); pe.scale.set(0.13, 0.62, 0.5); pe.position.copy(ear.position).add(new THREE.Vector3(sx * 0.03, -0.04, -0.02)); pe.rotation.copy(ear.rotation); head.add(pe); }
+      const tip = mesh(new THREE.SphereGeometry(0.16, 8, 6), pink); tip.position.set(0, -1.12, 0.14); trunk.add(tip); for (const sx of [-1, 1]) for (let k = 0; k < 7; k++) { const f = mesh(new THREE.SphereGeometry(0.07, 6, 4), pink); f.scale.set(0.5, 1, 1); f.position.set(sx * 0.53, -0.25 + hash(k, sx, 5) * 0.55, -0.4 + hash(k, sx, 6) * 0.5); head.add(f); }
       for (let k = 0; k < 4; k++) { const f = mesh(new THREE.SphereGeometry(0.06, 6, 4), pink); f.position.set((hash(k, 2, 7) - 0.5) * 0.2, -0.95 - k * 0.07, 0.3); trunk.add(f); }
       const face = mesh(new THREE.SphereGeometry(0.2, 8, 6), pink); face.scale.set(1.2, 0.6, 0.4); face.position.set(0, 0.1, 0.38); head.add(face); }
     const tail = mesh(new THREE.CylinderGeometry(0.03, 0.02, 0.6, 4), d); tail.position.set(0, 1.1, -0.95); tail.rotation.x = 0.4; g.add(tail);
@@ -265,8 +267,9 @@ function build(E) {
   // the river, the old bridge and its lever stone
   const river = new THREE.Mesh(new THREE.PlaneGeometry(4.4, 26), new THREE.MeshStandardMaterial({ color: PAL.water, transparent: true, opacity: 0.85, roughness: 0.2 })); river.rotation.x = -Math.PI / 2; river.position.set(11.8, -0.55, 4); scene.add(river);
   island(P('R_far').add(new THREE.Vector3(1.6, 0, 0)), 2.6, PAL.scrub, 'a1');
-  const lever = new THREE.Group(); lever.position.copy(P('B_bank')).setY(0.02); scene.add(lever);
-  { const st = mesh(new THREE.CylinderGeometry(0.75, 0.85, 0.16, 12), mat(PAL.rock)); st.position.y = 0.06; lever.add(st); lever.userData.st = st; const g = halo(lever, 0xffe2a0, 0.85, 1.05); g.position.y = 0.16; tag(st, { surface: 'a1' }); }
+  const levers = {}; for (const node of ['B_bank', 'R_far']) { const lv = new THREE.Group(); lv.position.copy(P(node)).setY(0.02); scene.add(lv); levers[node] = lv;
+    const st = mesh(new THREE.CylinderGeometry(0.75, 0.85, 0.16, 12), mat(PAL.rock)); st.position.y = 0.06; lv.add(st); lv.userData.st = st; const g = halo(lv, 0xffe2a0, 0.85, 1.05); g.position.y = 0.16; tag(st, { surface: 'a1' }); }
+  const lever = levers.B_bank;
   const bridgePivot = new THREE.Group(); bridgePivot.position.copy(P('B_bank')).add(new THREE.Vector3(0.8, 0, 0)).setY(0.0); scene.add(bridgePivot);
   const bridge = new THREE.Group(); bridgePivot.add(bridge);
   { const len = P('R_far').x - P('B_bank').x - 1.0; for (let i = 0; i < 9; i++) { const pl = mesh(new THREE.BoxGeometry(len / 9 - 0.04, 0.08, 1.2), mat(0x8a6a44)); pl.position.set((i + 0.5) * len / 9, 0, 0); bridge.add(pl); tag(pl, { surface: 'a1' }); }
@@ -297,23 +300,30 @@ function build(E) {
   // three waterholes with three herds
   const herds = {};
   function waterhole(id, herdKey, members, { hiddenCalf = false } = {}) {
-    const c = P(id); const dir = c.clone().sub(A2).setY(0).normalize(); const pc = c.clone().add(dir.clone().multiplyScalar(1.7));
-    const pool = new THREE.Mesh(new THREE.CircleGeometry(1.9, 24), new THREE.MeshStandardMaterial({ color: PAL.water, roughness: 0.2 })); pool.rotation.x = -Math.PI / 2; pool.position.copy(pc).setY(0.03); scene.add(pool);
+    const c = P(id); const dir = c.clone().sub(A2).setY(0).normalize(); const pc = c.clone().add(dir.clone().multiplyScalar(1.4));
+    const pool = new THREE.Mesh(new THREE.CircleGeometry(1.5, 24), new THREE.MeshStandardMaterial({ color: PAL.water, roughness: 0.2 })); pool.rotation.x = -Math.PI / 2; pool.position.copy(pc).setY(0.03); scene.add(pool);
     for (let i = 0; i < 9; i++) { const pad = mesh(new THREE.CircleGeometry(0.22, 10), mat(PAL.lily), { cast: false }); pad.rotation.x = -Math.PI / 2; pad.position.copy(pc).add(polar(0.6 + hash(i, 3, id.length) * 1.1, i * 0.7, 0.04)); scene.add(pad);
       if (i % 3 === 0) { const fl = mesh(new THREE.ConeGeometry(0.08, 0.14, 6), mat(PAL.lotus)); fl.position.copy(pad.position).setY(0.1); scene.add(fl); } }
     for (let i = 0; i < 3; i++) { const b = boulder(0.6 + hash(i, 5, id.length) * 0.5); b.position.copy(pc).add(polar(2.3, Math.atan2(dir.x, dir.z) + Math.PI / 2 + i * 0.9 - 0.9, 0.2)); scene.add(b); }
     const g = new THREE.Group(); scene.add(g); const out = [];
-    members.forEach(([s, opts], i) => { const e = elephant(s, opts); const a = Math.atan2(dir.x, dir.z) + (i - (members.length - 1) / 2) * 0.42; e.position.copy(pc).add(polar(2.2 + (i % 2) * 0.6, a, 0)); e.rotation.y = a + Math.PI; g.add(e); out.push(e);
-      const hit = new THREE.Mesh(new THREE.SphereGeometry(1.0, 8, 6), new THREE.MeshBasicMaterial({ visible: false })); hit.position.y = 1.2; e.add(hit); });
-    if (hiddenCalf) { const hc = out[out.length - 1]; const rock = boulder(1.0); rock.scale.set(1.4, 1.2, 1.0); rock.position.copy(hc.position).add(dir.clone().multiplyScalar(-1.1)).setY(0.4); scene.add(rock); }
+    // adults stand in two staggered rows behind the water; the little ones drink at the near edge, where nothing hides them
+    const base = Math.atan2(dir.x, dir.z), adults = members.filter(([sz]) => sz >= 0.7), young = members.filter(([sz]) => sz < 0.7);
+    const put = (e, a, r) => { e.position.copy(pc).add(polar(r, a, 0)); e.rotation.y = a + Math.PI; g.add(e); out.push(e);
+      const hit = new THREE.Mesh(new THREE.SphereGeometry(1.0, 8, 6), new THREE.MeshBasicMaterial({ visible: false })); hit.position.y = 1.2; e.add(hit); };
+    adults.forEach(([sz, opts], j) => put(elephant(sz, opts), base + (j - (adults.length - 1) / 2) * 0.42, 2.1 + (j % 2) * 0.9));
+    const front = hiddenCalf ? young.slice(0, -1) : young;
+    front.forEach(([sz, opts], k) => put(elephant(sz, opts), base + Math.PI + (k - (front.length - 1) / 2) * 1.1 + (front.length === 1 ? 0.55 : 0), 1.65));
+    if (hiddenCalf) { // the second little one is tucked in behind a boulder at the end of the line: turn the view to spot it
+      const [sz, opts] = young[young.length - 1], a = base + ((adults.length - 1) / 2) * 0.42 + 0.62; const e = elephant(sz, opts); put(e, a, 3.1);
+      const rock = boulder(0.95); rock.scale.set(1.3, 1.15, 1.0); rock.position.copy(e.position).add(pc.clone().sub(e.position).setY(0).normalize().multiplyScalar(1.05)).setY(0.35); scene.add(rock); }
     tag(g, { item: herdKey }); items[herdKey] = g; herds[herdKey] = { g, out, pc };
   }
-  // herd1 (3 north, 2 east): 7 elephants, 2 calves (one tucked behind a rock: turn the view to count it) — the right one
-  waterhole('E23', 'herd1', [[1.0, { tornEar: true }], [0.95, {}], [0.9, {}], [0.42, {}], [1.0, {}], [0.85, {}], [0.4, {}]], { hiddenCalf: true });
-  // herd2 (2 north, 3 east): 7 elephants but only 1 calf
-  waterhole('E32', 'herd2', [[1.0, {}], [0.95, {}], [0.9, {}], [1.0, {}], [0.85, {}], [0.95, {}], [0.42, {}]]);
-  // herd3 (3 north, 2 west): 5 elephants with 2 calves
-  waterhole('W23', 'herd3', [[1.0, {}], [0.9, {}], [0.42, {}], [0.95, {}], [0.4, {}]]);
+  // the description: north-east of the lone tree, seven elephants, two little ones, a matriarch with a torn left ear. Only herd1 fits all four.
+  waterhole('H1', 'herd1', [[1.0, { tornEar: true }], [0.95, {}], [0.9, {}], [0.42, {}], [1.0, {}], [0.85, {}], [0.4, {}]], { hiddenCalf: true }); // NNE: the one (a calf hides behind a rock)
+  waterhole('H2', 'herd2', [[1.0, {}], [0.95, {}], [0.42, {}], [0.9, {}], [1.0, {}], [0.85, {}], [0.4, {}]]);                        // ENE: seven, two little ones, but both ears whole
+  waterhole('H3', 'herd3', [[1.0, { tornEar: true }], [0.9, {}], [0.42, {}], [0.95, {}], [0.4, {}]]);                                // west: torn ear, two little ones, but only five
+  waterhole('H4', 'herd4', [[1.0, { tornEar: true }], [0.95, {}], [0.9, {}], [0.42, {}], [1.0, {}], [0.85, {}], [0.4, {}]]);         // north-north-west: everything matches except the direction
+  waterhole('H5', 'herd5', [[1.0, { tornEar: true }], [0.95, {}], [0.9, {}], [1.0, {}], [0.85, {}], [0.95, {}], [0.42, {}]]);       // east: seven, torn ear, but one little one
   // the safari camp: canvas tents with lanterns (a secret ola leaf in one)
   const tents = [];
   for (const [dx, dz, r] of [[-1.4, 0.4, 0.3], [0.6, 1.4, -0.4]]) { const t = new THREE.Group(); t.position.copy(P('CAMP')).add(new THREE.Vector3(dx, 0, dz)); t.rotation.y = r; scene.add(t);
@@ -324,13 +334,13 @@ function build(E) {
   { const hit = new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 6), new THREE.MeshBasicMaterial({ visible: false })); leaf.add(hit); } tag(leaf, { hidden: 'leaf' });
   // the rangers' sighting slips: the rest of the herd's description
   const NOTE_TEXT = ['“Seven of them at the waterhole.”', '“Two little ones with them.”', '“The matriarch’s <b>left ear is torn</b>.”'];
-  const notes = []; [[P('CAMP').add(new THREE.Vector3(0.5, 0.95, -0.7)), 0.4], [P('T').add(new THREE.Vector3(-0.7, 0.75, 0.9)), -0.3], [P('W13').add(new THREE.Vector3(0.55, 0.52, 0.55)), 0.8]].forEach(([p, r], i) => {
+  const notes = []; [[P('CAMP').add(new THREE.Vector3(0.5, 0.95, -0.7)), 0.4], [P('T').add(new THREE.Vector3(-0.7, 0.75, 0.9)), -0.3], [P('NWJ').add(new THREE.Vector3(0.55, 0.52, 0.55)), 0.8]].forEach(([p, r], i) => {
     const n = mesh(new THREE.BoxGeometry(0.42, 0.02, 0.3), mat(0xf4e7c8)); n.position.copy(p); n.rotation.set(-0.4, r, 0.1); scene.add(n);
     const hit = new THREE.Mesh(new THREE.SphereGeometry(0.45, 8, 6), new THREE.MeshBasicMaterial({ visible: false })); n.add(hit); halo(n, 0xfff0b0, 0.25, 0.4).position.y = -0.02; tag(n, { hidden: 'n' + i }); notes.push(n); });
   { const tbl = mesh(new THREE.BoxGeometry(1.0, 0.06, 0.7), mat(0x8a6a44)); tbl.position.copy(P('CAMP')).add(new THREE.Vector3(0.5, 0.88, -0.7)); scene.add(tbl); const leg = mesh(new THREE.BoxGeometry(0.08, 0.86, 0.08), mat(0x6e4a30)); leg.position.copy(tbl.position).add(new THREE.Vector3(0, -0.43, 0)); scene.add(leg); }
   // granite outcrop with a leopard on top (revealed at sunset), trees, bee-eaters, scrub
-  const leoRock = boulder(2.4, 0xc4ab98); leoRock.scale.set(1.3, 1.1, 1.1); leoRock.position.copy(A2).add(new THREE.Vector3(-7.4, 0.9, -1.4)); scene.add(leoRock);
-  const leopard = new THREE.Group(); leopard.position.copy(leoRock.position).add(new THREE.Vector3(0, 2.0, 0)); leopard.scale.setScalar(0.001); scene.add(leopard); leopard.add(leopardModel());
+  const leoRock = boulder(1.6, 0xc4ab98); leoRock.scale.set(1.3, 1.1, 1.1); leoRock.position.copy(A2).add(new THREE.Vector3(4.6, 0.9, 7.4)); scene.add(leoRock); // out on the open south side, clear of the waterholes
+  const leopard = new THREE.Group(); leopard.position.copy(leoRock.position).add(new THREE.Vector3(0, 1.35, 0)); leopard.scale.setScalar(0.001); scene.add(leopard); leopard.add(leopardModel());
 
   for (let i = 0; i < 26; i++) { const a = hash(i, 4, 9) * Math.PI * 2, r = 6.5 + hash(i, 5, 9) * 5.4; const p = A2.clone().add(polar(r, a, 0));
     if ([...Object.values(herds)].some((h) => h.pc.distanceTo(p) < 3.6) || p.distanceTo(P('CAMP')) < 2.6 || p.distanceTo(leoRock.position) < 3.2) continue;
@@ -350,7 +360,7 @@ function build(E) {
   /* ================= VIEW SYNC & STORY ================= */
   const nodePos = (id) => P(id);
   function surfaceTarget(kind, point) {
-    if (kind === 'jeep') { if (S.player !== 'R_far') return 'R_far'; if (!S.drank) { label('“The calf is too weak for the walk. It needs a drink first, back at the rock pool.”', 4200); bubble(ranger2, 'drop', { offset: 2.1 }); E.bump(); return null; } if (S.calf !== 'follow') { label('“Bring the calf! We can’t leave it here on its own.” Tap the calf to call it.', 4200); bubble(ranger2, 'calf', { offset: 2.1 }); E.bump(); return null; } return 'D'; }
+    if (kind === 'jeep') { if (L.areaOf(S.player) === 2) { if (S.calf !== 'follow') window.__game.interactAt('calf'); return null; } if (S.player !== 'R_far') return 'R_far'; if (!S.drank) { label('“The calf is too weak for the walk. It needs a drink first, back at the rock pool.”', 4200); bubble(ranger2, 'drop', { offset: 2.1 }); E.bump(); return null; } if (S.calf !== 'follow') { label('“Bring the calf! We can’t leave it here on its own.” Tap the calf to call it.', 4200); bubble(ranger2, 'calf', { offset: 2.1 }); E.bump(); return null; } return 'D'; }
     const ids = Object.keys(L.NODES).filter((id) => (kind === 'a2' ? L.areaOf(id) === 2 : L.areaOf(id) === 1));
     let best = null, bd = 1e9; for (const id of ids) { const n = P(id); const d = Math.hypot(n.x - point.x, n.z - point.z); if (d < bd) { bd = d; best = id; } } return best;
   }
@@ -399,15 +409,17 @@ function build(E) {
     needRamp: 'The calf is stuck at the bottom of a steep gully, squealing. It needs a ramp to climb out: find three fallen branches.',
     poolNoCalf: 'A cool rock pool. The calf would love a drink here.',
     drank: 'The calf dips its trunk and drinks and drinks, then gives a happy little rumble. It’s ready for the long walk.',
-    needNotes: 'You’re not sure this is the right herd. Find the rangers’ sighting slips for the full description first.', herdNoCalf: 'You can’t bring the herd to the calf. Fetch the calf first.',
+    needNotes: 'You’re not sure this is the right herd. Find the rangers’ sighting slips for the full description first.', herdNoCalf: 'The calf isn’t with you. Tap the calf to call it (if it’s back by the river, tap the jeep and the ranger will fetch it).',
     wrongHerd: 'The matriarch rumbles and turns away; the calf hides behind your legs. Not its family. Count again.',
   };
   function onResult(r, what) {
     switch (r) {
       case 'foundCalf': ramp.visible = true; calfState.mode = 'follow'; E.sfx.place(); E.audio.bird('calf', { far: 0.15 }); [4, 6, 9].forEach((n, i) => E.sfx.pluck(n, { vol: 0.05, delay: 0.5 + i * 0.18 })); for (const m of calf.children) m.traverse((o) => { if (o.isMesh) o.userData.item = 'calf'; }); calf.traverse((o) => { if (o.isMesh) o.userData.item = 'calf'; });
         anims.push({ t: 0, dur: 0.8, f: (k) => { calf.position.y = -0.1 + Math.sin(k * Math.PI) * 0.6 + k * 0.16; } }); trailPts.length = 0; break;
-      case 'calfStay': calfState.mode = 'stay'; calfState.stayAt = P(S.calf).clone(); click(); bubble(calf, 'stone', { offset: 1.4 }); if (S.calf === 'B_bank') { setTimeout(lowerBridge, 500); } break;
-      case 'calfFollow': { const was = calfState.stayAt; calfState.mode = 'follow'; click(); bubble(calf, 'heart', { offset: 1.4 }); if (was && was.distanceTo(P('B_bank')) < 0.5) setTimeout(raiseBridge, 300);
+      case 'calfStay': calfState.mode = 'stay'; calfState.stayAt = P(S.calf).clone(); click(); bubble(calf, 'stone', { offset: 1.4 }); if (levers[S.calf]) { const lv = levers[S.calf]; setTimeout(() => lowerBridge(lv), 500); } break;
+      case 'calfFollow': { const was = calfState.stayAt; calfState.mode = 'follow'; click(); bubble(calf, 'heart', { offset: 1.4 }); for (const node of ['B_bank', 'R_far']) if (was && was.distanceTo(P(node)) < 0.5) setTimeout(() => raiseBridge(levers[node]), 300);
+        if (was && was.distanceTo(P('R_far')) < 0.5 && L.areaOf(S.player) === 1 && S.player !== 'R_far') { calfState.wade = { t: 0, from: was.clone(), to: P('B_bank').add(new THREE.Vector3(-0.8, 0, 0.8)) }; label('The calf splashes back across the river to you.', 3200); }
+        if (was && L.areaOf(S.player) === 2 && was.distanceTo(P('D')) > 12) { calfState.wade = null; calf.position.copy(P('D')).add(new THREE.Vector3(-1.2, 0, 2.2)); trailPts.length = 0; label('The ranger drives back for the calf, and it trots off the jeep to find you.', 4200); } // it was left behind by the river
         if (was && was.distanceTo(P('B_bank')) < 0.5 && S.player === 'R_far') { calfState.wade = { t: 0, from: was.clone(), to: P('R_far').add(new THREE.Vector3(-0.8, 0, 0.8)) }; label('The calf splashes happily across the river to you.', 3200); } trailPts.length = 0; break; }
       case 'calfCantReach': bump(); break;
       case 'gotBranch': { const b = branches[+what[2]]; b.visible = false; E.sfx.found(S.branches); E.sfx.flutter(4); if (S.branches >= 3) setTimeout(() => label('That’s three branches: enough for a ramp. Back to the calf’s gully!', 4200), 2000); break; }
@@ -420,9 +432,9 @@ function build(E) {
       case 'win': reunite(); E.win(); setTimeout(() => (sunset = true), 4000); break;
     }
   }
-  function lowerBridge() { grind(1.2); E.sfx.lever(); const r0 = bridgePivot.rotation.z; anims.push({ t: 0, dur: 1.4, f: (k) => (bridgePivot.rotation.z = r0 + (BR_DOWN - r0) * k) }); const s0 = lever.userData.st.position.y; anims.push({ t: 0, dur: 0.4, f: (k) => (lever.userData.st.position.y = s0 - 0.06 * k) });
+  function lowerBridge(lv = lever) { grind(1.2); E.sfx.lever(); const r0 = bridgePivot.rotation.z; anims.push({ t: 0, dur: 1.4, f: (k) => (bridgePivot.rotation.z = r0 + (BR_DOWN - r0) * k) }); const s0 = lv.userData.st.position.y; anims.push({ t: 0, dur: 0.4, f: (k) => (lv.userData.st.position.y = s0 - 0.06 * k) });
     label('The calf’s weight presses the lever stone down, and the old bridge creaks down across the river.', 4800); E.progress(); }
-  function raiseBridge() { grind(1.0); const r0 = bridgePivot.rotation.z; anims.push({ t: 0, dur: 1.2, f: (k) => (bridgePivot.rotation.z = r0 + (BR_UP - r0) * k) }); const s0 = lever.userData.st.position.y; anims.push({ t: 0, dur: 0.4, f: (k) => (lever.userData.st.position.y = s0 + (0.06 - 0.0) * k) }); }
+  function raiseBridge(lv = lever) { grind(1.0); const r0 = bridgePivot.rotation.z; anims.push({ t: 0, dur: 1.2, f: (k) => (bridgePivot.rotation.z = r0 + (BR_UP - r0) * k) }); const s0 = lv.userData.st.position.y; anims.push({ t: 0, dur: 0.4, f: (k) => (lv.userData.st.position.y = s0 + 0.06 * k) }); }
   function reunite() {
     document.body.classList.add('won'); const h = herds.herd1; const mom = h.out[0];
     const from = calf.position.clone(), to = mom.position.clone().add(mom.position.clone().sub(h.pc).setY(0).normalize().multiplyScalar(-1.2)).setY(0);
@@ -451,14 +463,16 @@ function build(E) {
     if (E.AC) { const AC = E.AC; const t0 = AC.currentTime; const vol = [0, 0.007, 0.017, 0.035][bars]; for (let n = 0; n < 2; n++) { const o = AC.createOscillator(), g = AC.createGain(); o.type = 'sawtooth'; const t = t0 + n * 0.6; o.frequency.setValueAtTime(700, t); o.frequency.linearRampToValueAtTime(900, t + 0.2); o.frequency.linearRampToValueAtTime(760, t + 0.45);
       g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.05); g.gain.linearRampToValueAtTime(0, t + 0.5); const f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 900 + bars * 400; o.connect(f).connect(g); E.audio.out(g, { far: [0, 0.7, 0.45, 0.2][bars] }); o.start(t); o.stop(t + 0.55); } }
     label(['', 'A faint, faraway squeal… the calf is a long way off.', 'A clearer squeal. You’re getting closer.', 'A loud, frightened squeal, very close now!'][bars], 3000); };
-  const actionFor = { calfFind: () => !S.calf && S.branches >= 3 && 'place', herd1: () => S.calf === 'follow' && 'place', herd2: () => S.calf === 'follow' && 'place', herd3: () => S.calf === 'follow' && 'place' };
+  const actionFor = { calfFind: () => !S.calf && S.branches >= 3 && 'place', herd1: () => S.calf === 'follow' && 'place', herd2: () => S.calf === 'follow' && 'place', herd3: () => S.calf === 'follow' && 'place', herd4: () => S.calf === 'follow' && 'place', herd5: () => S.calf === 'follow' && 'place' };
   function unreachable(what) { if (what === 'calfFind') label('Follow the trail to find the calf. Read the signs at each crossroads.', 3600); }
   function onNothing() {}
   function hintTarget() {
     if (!S.calf && S.player === 'G_calf' && S.branches < 3) { const b = branches.find((x) => x.visible); return { obj: b, words: ['Fallen branches lie near the dead ends of the wrong trails. Tap them wherever you can see them: you need three for a ramp.'] }; }
     if (!S.calf && TRAIL.indexOf(S.player) === TRAIL.length - 1 - 0 && S.branches < 3) return { obj: branches.find((x) => x.visible), words: ['Find three fallen branches.'] };
     if (!S.calf && S.branches >= 3) return { obj: calf.visible ? calf : P('G_calf') && calfThicket, words: ['You have three branches. Tap the calf in the gully to build it a ramp.'] };
+    if (S.player === 'R_far' && !S.drank) return S.calf === 'R_far' ? { obj: bridge, words: ['The calf’s weight holds this bridge down too. Cross back, then call the calf over and take it to the rock pool.'] } : { obj: calf, words: ['The calf must drink before the long drive. Tell it to stay on the stone here (tap the calf): the bridge comes down, so you can go back to the rock pool.'] };
     if (S.calf === 'follow' && !S.drank && L.areaOf(S.player) === 1) return { obj: rockPool, words: ['Lead the calf to the rock pool for a drink.'] };
+    if (L.areaOf(S.player) === 2 && S.calf !== 'follow' && !S.won) return { obj: jeepB, words: ['The calf got left behind by the river! Tap the jeep, and the ranger will drive back for it.'] };
     if (L.areaOf(S.player) === 2 && S.notes < 3) { const n = notes.find((x) => x.visible); return { obj: n, words: ['The rangers left sighting slips around the camp and the plain. Look by the tents, the lone tree and the track posts.'] }; }
     if (!S.calf) { // next correct crossroads on the trail
       const i = TRAIL.indexOf(S.player); const nxt = i >= 0 ? TRAIL[i + 1] : TRAIL[0];
@@ -470,9 +484,10 @@ function build(E) {
       if (!L.bridgeDown(S)) return { obj: lever, words: ['The lever stone by the river needs real weight. Lead the calf onto it and tell it to stay (tap the calf).'] };
       return { obj: bridge, words: ['The bridge is down. Cross to the ranger.'] };
     }
+    if (S.player === 'R_far' && !S.drank) return S.calf === 'R_far' ? { obj: bridge, words: ['The calf’s weight holds this bridge down too. Cross back, then call the calf over and take it to the rock pool.'] } : { obj: calf, words: ['The calf must drink before the long drive. Tell it to stay on the stone here (tap the calf): the bridge comes down, so you can go back to the rock pool.'] };
     if (S.player === 'R_far') return S.calf === 'follow' ? { obj: jeepB, words: ['Tap the jeep to drive to the waterholes.'] } : { obj: calf, words: ['Tap the calf to call it across. Elephants can wade.'] };
     if (S.calf !== 'follow') return { obj: calf, words: ['Tap the calf to call it.'] };
-    return { obj: herds.herd1.g, words: ['North-east of the tree: go north and east along the tracks. Two herds lie that way. Count the elephants and the little ones (turn the view to see behind rocks).'] };
+    return { obj: herds.herd1.g, words: ['North-east of the lone tree (the compass shows north). Two waterholes lie that way. Check each: seven elephants, two little ones (turn the view to see behind rocks), and a matriarch with a torn left ear.'] };
   }
   function inventory(s) { return { calf: s.calf === 'follow', branch: !s.calf && s.branches ? `${s.branches}/3` : '', note: L.areaOf(s.player) === 2 && s.notes < 3 ? `${s.notes}/3` : '', leaf: s.has.leaf }; }
 
@@ -480,7 +495,10 @@ function build(E) {
   const tod = { k: 0 }; let notesShown = false; const started = () => document.getElementById('intro').classList.contains('hide');
   function focus() { let f = L.areaOf(S.player) === 2 ? 1 : 0; if (riding) { const d = roadB.clone().sub(roadA); f = THREE.MathUtils.clamp(girl.position.clone().sub(roadA).dot(d) / d.lengthSq(), 0, 1); }
     if (S.player === 'R_far' && !riding) f = 0.15; const k = f * f * (3 - 2 * f);
-    return { target: new THREE.Vector3(1.5, 1.2, -1).lerp(A2.clone().add(new THREE.Vector3(0, 1.2, -1.5)), k), zoom: 1, k, pz: 1.12 }; }
+    // up close with a young elephant (ours or not): come right in, so the ears and trunk can be compared
+    const young = !riding && { G_calf: calf, G_kid: deadEnd.G_kid[0], G_kid2: deadEnd.G_kid2[0], G_mom: deadEnd.G_mom[0] }[S.player];
+    if (young && young.visible !== false) { const p = young.getWorldPosition(new THREE.Vector3()).lerp(girl.position, 0.35); return { target: p.add(new THREE.Vector3(0, 0.6, 0)), zoom: 2.6, k, pz: 1.9 }; }
+    return { target: new THREE.Vector3(1.5, 1.2, -1).lerp(A2.clone().add(new THREE.Vector3(0.6, 1.2, -1.8)), k), zoom: 1, k, pz: 1.12 - 0.14 * k }; }
   const skyA = { sun: new THREE.Color(0xfff2dc), hemi: new THREE.Color(0xfff3e8), fog: new THREE.Color(0xf3e6cc) };
   const skyB = { sun: new THREE.Color(0xffb070), hemi: new THREE.Color(0xf0c8a0), fog: new THREE.Color(0xf0c8a0) };
   const skyC = { sun: new THREE.Color(0xc87a8a), hemi: new THREE.Color(0x9a7aa8), fog: new THREE.Color(0x8a6a8a) };
@@ -524,6 +542,6 @@ function build(E) {
     sun.color.copy(skyA.sun).lerp(skyB.sun, kk).lerp(skyC.sun, k2); hemi.color.copy(skyA.hemi).lerp(skyB.hemi, kk).lerp(skyC.hemi, k2); scene.fog.color.copy(skyA.fog).lerp(skyB.fog, kk).lerp(skyC.fog, k2);
     sun.intensity = 2.2 - k2 * 1.0; hemi.intensity = 1.5 - k2 * 0.5;
   }
-  return { sound, surfaceAt, nodePos, surfaceTarget, edgePoints, onEdgeStart, onArrive, onResult, tapHidden, actionFor, items, unreachable, onNothing, hintTarget, inventory, focus, tick, MSG, tod,
-    reachCap: { calfFind: 0.6, herd1: 1.0, herd2: 1.0, herd3: 1.0 } };
+  return { busy: () => riding, sound, surfaceAt, nodePos, surfaceTarget, edgePoints, onEdgeStart, onArrive, onResult, tapHidden, actionFor, items, unreachable, onNothing, hintTarget, inventory, focus, tick, MSG, tod,
+    reachCap: { calfFind: 0.6, herd1: 1.0, herd2: 1.0, herd3: 1.0, herd4: 1.0, herd5: 1.0 } };
 }

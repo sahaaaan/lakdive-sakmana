@@ -27,6 +27,7 @@
   .ch .s{font-size:12px;margin-top:7px;font-weight:700;color:var(--ink-soft)}
   .ch.done .s{color:#2f8a4a}.ch.next{outline:2px solid var(--accent);outline-offset:-2px}
   .ch.locked{opacity:.5;cursor:not-allowed;filter:grayscale(.6)}
+  #leaves{font-size:13px;color:var(--ink-soft);margin-top:8px;text-align:center;pointer-events:auto} #leaves button{margin-left:8px;font:600 12px inherit;padding:5px 12px;border-radius:999px;border:0;cursor:pointer;background:#f3e6c4;color:#6a4a20} #leaves button.on{background:#b9664c;color:#fff}
   #hint{font-size:13px;color:var(--ink-soft);margin-top:10px;text-align:center;pointer-events:auto}
   #hint button{background:none;border:0;color:var(--accent);font:inherit;font-weight:700;cursor:pointer;text-decoration:underline}
   #trip{position:fixed;left:16px;top:16px;padding:12px 16px;max-width:360px;opacity:0;transition:opacity .5s;pointer-events:none}
@@ -52,7 +53,7 @@ body.inlevel #snd{display:none}#snd{position:fixed;right:16px;top:16px;z-index:6
 <canvas id="map"></canvas>
 <div id="home">
   <div class="head"><h1>Lakdive Sakmana</h1><div class="sub">A stroll through Sri Lanka</div></div>
-  <div><div id="chapters"></div><div id="hint"></div></div>
+  <div><div id="chapters"></div><div id="hint"></div><div id="leaves"></div></div>
 </div>
 <div id="trip" class="card"><div class="k" id="tripK"></div><div class="t" id="tripT"></div><div class="r" id="tripR"></div></div>
 <button id="skip" class="card">Skip ›</button>
@@ -277,11 +278,16 @@ function closeLevel(then) { openToken++; delete prog.inLevel; save(); fade.class
 addEventListener('message', (e) => { const d = e.data || {}; if (!d.pahana) return; const i = CH.findIndex((c) => c.n === d.chapter); if (i < 0) return;
   if (d.pahana === 'won') { if (!prog.done.includes(CH[i].id)) { prog.done.push(CH[i].id); save(); } renderHome(); }
   if (d.pahana === 'next') closeLevel(() => { if (i + 1 < CH.length) startJourney(i + 1); else { document.getElementById('end').style.display = 'flex'; showHome(false); } });
+  if (d.pahana === 'leaf') renderHome();
   if (d.pahana === 'map') closeLevel(() => showHome(true));
 });
 document.getElementById('endBack').onclick = () => { document.getElementById('end').style.display = 'none'; showHome(true); };
 
 /* ---------------- the chapter select (Monument Valley style) ---------------- */
+const LEAF_KEY = 'lakdive.leaves.v1', WEAR_KEY = 'lakdive.wardrobe.v1';
+function leafCount() { try { return new Set(JSON.parse(localStorage.getItem(LEAF_KEY) || '[]')).size; } catch (e) { return 0; } }
+function wardrobe() { try { return leafCount() >= 5 ? localStorage.getItem(WEAR_KEY) || '' : ''; } catch (e) { return ''; } }
+function setWardrobe(v) { try { if (v) localStorage.setItem(WEAR_KEY, v); else localStorage.removeItem(WEAR_KEY); } catch (e) {} }
 function renderHome() {
   const box = document.getElementById('chapters'); box.innerHTML = '';
   const next = CH.findIndex((c, i) => !isDone(i));
@@ -291,6 +297,11 @@ function renderHome() {
     box.appendChild(b); });
   const all = prog.done.length >= CH.length;
   document.getElementById('hint').innerHTML = all ? 'The whole journey is complete. Replay any chapter. <button id="reset">Start a new journey</button>' : prog.done.length ? `Next stop: <b>${CH[next].place}</b>.` : 'Your journey begins in Colombo. <b>Start with the Prologue</b>: it shows you how to play.';
+  // the secret ola-leaf pages, one per chapter: all five unlock the Kandyan queen's outfit
+  const pages = leafCount(), lv = document.getElementById('leaves'), wearing = wardrobe() === 'queen';
+  lv.innerHTML = pages >= 5 ? `📜 All five ola-leaf pages found. <button id="wear" class="${wearing ? 'on' : ''}">👑 ${wearing ? 'Wearing the queen’s outfit' : 'Wear the queen’s outfit'}</button>`
+    : `🍃 Every chapter hides a secret ola-leaf page. Find all five for a surprise in Chapter V. Found so far: <b>${pages}/5</b>`;
+  const wb = document.getElementById('wear'); if (wb) wb.onclick = () => { SND.start(); setWardrobe(wearing ? '' : 'queen'); renderHome(); };
   const r = document.getElementById('reset'); if (r) r.onclick = () => { prog.done = []; prog.here = -1; try { Object.keys(localStorage).filter((k) => k.startsWith('lakdive.run.')).forEach((k) => localStorage.removeItem(k)); } catch (e) {} here = -1; save(); renderHome(); };
 }
 function showHome(on) { document.getElementById('home').classList.toggle('hide', !on); document.getElementById('trip').classList.remove('on'); }

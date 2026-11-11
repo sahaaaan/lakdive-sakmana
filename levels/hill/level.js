@@ -190,14 +190,14 @@ function build(E) {
   { const w = mesh(new THREE.BoxGeometry(6.0, 3.4, 4.0), mat(PAL.white)); w.position.y = 1.7; factory.add(w); const r = mesh(new THREE.CylinderGeometry(0.01, 3.4, 1.4, 4, 1), mat(PAL.roofGreen)); r.rotation.y = Math.PI / 4; r.scale.set(1.25, 1, 0.85); r.position.y = 4.1; factory.add(r);
     for (let i = 0; i < 6; i++) for (let j = 0; j < 2; j++) { const win = mesh(new THREE.BoxGeometry(0.6, 0.7, 0.05), mat(0x3a4a50)); win.position.set(-2.4 + i * 0.95, 1.0 + j * 1.3, 2.02); factory.add(win); }
     const sign = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 0.5), new THREE.MeshBasicMaterial({ map: cardTex('MIST VALLEY ESTATE', '#4f7a5a', '#f3efe6') })); sign.position.set(0, 3.0, 2.03); factory.add(sign); }
-  const lean = mesh(new THREE.BoxGeometry(6.4, 0.08, 1.8), mat(PAL.roofGreen)); lean.position.set(6.4, 2.2, 2.6); lean.rotation.x = -0.15; scene.add(lean);
+  const lean = mesh(new THREE.BoxGeometry(8.4, 0.08, 2.1), mat(PAL.roofGreen)); lean.position.set(6.6, 2.45, 2.7); lean.rotation.x = -0.15; scene.add(lean);
   const STAGE_COL = ['#7fae5a', '#5a8a4a', '#b8743a', '#7a4a2a', '#c8a24a'];
-  const stations = []; for (let i = 0; i < 5; i++) { const g = new THREE.Group(); g.position.set(4.0 + i * 1.2, 0, 2.5); scene.add(g);
+  const stations = []; for (let i = 0; i < 5; i++) { const g = new THREE.Group(); g.position.set(3.3 + i * 1.65, 0, 2.55); g.scale.setScalar(1.18); scene.add(g); // bigger, with room between them to tap
     const m = mesh(new THREE.BoxGeometry(0.95, 0.9, 0.9), mat(0x8a8f94)); m.position.y = 0.45; g.add(m); const drum = mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.9, 10), mat(0x6a6f74)); drum.rotation.z = Math.PI / 2; drum.position.y = 1.05; g.add(drum); g.userData.drum = drum;
     const card = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 0.36), new THREE.MeshBasicMaterial({ map: cardTex(L.STAGES[0], '#333', '#fff') })); card.position.set(0, 0.62, 0.46); g.add(card); g.userData.card = card;
     const num = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.2), new THREE.MeshBasicMaterial({ map: cardTex(String(i + 1), '#f3e6c4', '#333') })); num.position.set(0, 1.5, 0.3); g.add(num);
     tag(g, { item: 'st' + i }); items['st' + i] = g; stations.push(g); }
-  const runLever = new THREE.Group(); runLever.position.set(3.2, 0, 3.4); scene.add(runLever);
+  const runLever = new THREE.Group(); runLever.position.set(3.55, 0, 4.15); scene.add(runLever);
   { const b = mesh(new THREE.BoxGeometry(0.3, 0.6, 0.3), mat(0x555555)); b.position.y = 0.3; runLever.add(b); const h = mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.8, 6), mat(0xc8423b)); h.position.y = 0.9; h.rotation.z = 0.5; runLever.add(h); runLever.userData.h = h; const bc = beacon(0xffd27a, 2.4); runLever.add(bc); runLever.userData.beacon = bc; }
   { const hit = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.6, 0.9), new THREE.MeshBasicMaterial({ visible: false })); hit.position.y = 0.75; runLever.add(hit); } // a generous tap area
   tag(runLever, { item: 'run' }); items.run = runLever;
@@ -522,9 +522,10 @@ function build(E) {
   function focus() { let f = L.areaOf(S.player) === 2 ? 1 : 0; if (riding) { const d = roadB.clone().sub(roadA); f = THREE.MathUtils.clamp(girl.position.clone().sub(roadA).dot(d) / d.lengthSq(), 0, 1); }
     const k = f * f * (3 - 2 * f);
     // on phones held upright, come right in at the factory so each machine and bin is big enough to tap
-    const close = { F_door: ['st0', 'st4', 2.2], F_yard: ['binB', 'binN', 2.2], T3: ['sack0', 'sack5', 2.6], GATE: ['tA', 'tC', 2.4] }[S.player];
-    if (!riding && close && innerWidth / innerHeight < 0.8) { const a = items[close[0]].getWorldPosition(new THREE.Vector3()), b = items[close[1]].getWorldPosition(new THREE.Vector3());
-      return { target: a.lerp(b, 0.5).add(new THREE.Vector3(0, 0.8, 0)), zoom: 1, k, pz: close[2] }; }
+    const close = { F_door: ['st0', 'st4', 2.4], F_yard: ['binB', 'binN', 2.2], T3: ['sack0', 'sack5', 2.6], GATE: ['tA', 'tC', 2.4] }[S.player];
+    const phone = innerWidth / innerHeight < 0.8, deskClose = { F_door: 1.7, F_yard: 1.5 }[S.player]; // on wider screens, come in a little at the factory too
+    if (!riding && close && (phone || deskClose)) { const a = items[close[0]].getWorldPosition(new THREE.Vector3()), b = items[close[1]].getWorldPosition(new THREE.Vector3());
+      return { target: a.lerp(b, 0.5).add(new THREE.Vector3(0, 0.8, 0)), zoom: phone ? 1 : deskClose, k, pz: phone ? close[2] : 1 }; }
     return { target: new THREE.Vector3(0.5, 1.6, 0).lerp(A2.clone().add(new THREE.Vector3(0, 1.2, 0)), k), zoom: 1 - 0.08 * k, k, pz: 1.02 - 0.18 * k }; }
   const skyA = { sun: new THREE.Color(0xf4f2ea), hemi: new THREE.Color(0xeef2ee), fog: new THREE.Color(0xe6ece4) };
   const skyB = { sun: new THREE.Color(0xffc890), hemi: new THREE.Color(0xf3dcc0), fog: new THREE.Color(0xf0dcc0) };
