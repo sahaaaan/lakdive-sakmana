@@ -376,7 +376,7 @@ function build(E) {
     else if (node === 'G_buff') A.osc('sawtooth', 112, A.now(), 1.3, { ...b, to: 92, vol: 0.03, lp: 420, a: 0.2, vib: [4, 3] });
     else if (node === 'G_leo') for (let i = 0; i < 4; i++) { A.hiss(A.now(i * 0.42), 0.25, { ...b, type: 'lowpass', color: 'brown', f: 420, vol: 0.12, a: 0.08 }); A.osc('sawtooth', 75, A.now(i * 0.42), 0.25, { ...b, vol: 0.016, lp: 260, a: 0.08 }); }
     else if (node === 'G_peac') A.bird('peacock', { ...b, vol: 2.2, pan: 0 });
-    else if (node === 'G_tusk' || node === 'G_mom') { A.bird('elephant', { ...b, vol: 1.6, pan: 0 }); if (node === 'G_mom') setTimeout(() => A.bird('calf', { ...b, vol: 1.2 }), 900); }
+    else if (node === 'G_tusk' || node === 'G_mom') { A.elephant('snort', { vol: 1.1, far: 0.3 }); A.elephant('trumpet', { vol: 1.2, far: 0.35, delay: 0.45 }); A.elephant('rumble', { vol: 1.1, far: 0.35, delay: 1.8 }); if (node === 'G_mom') setTimeout(() => A.bird('calf', { ...b, vol: 1.2 }), 1400); }
     else A.bird('calf', { ...b, vol: 1.2, pan: 0 }); }
   let sunset = false;
   function sound(A) { // morning on the red tracks: cicadas, birds, far peacocks and elephants; golden hour at the waterholes
@@ -444,8 +444,10 @@ function build(E) {
     let turns = 0; const spin = setInterval(() => { cam.azTo += Math.PI / 2; if (++turns >= 4) clearInterval(spin); }, 2700);
     E.playAction('wave', { speed: 1 });
   }
-  function trumpet() { if (!E.AC) return; const AC = E.AC; const t = AC.currentTime; const o = AC.createOscillator(), g = AC.createGain(); o.type = 'sawtooth'; o.frequency.setValueAtTime(520, t); o.frequency.linearRampToValueAtTime(760, t + 0.25); o.frequency.linearRampToValueAtTime(600, t + 0.9);
-    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.04, t + 0.08); g.gain.linearRampToValueAtTime(0, t + 1.0); const f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1400; o.connect(f).connect(g); E.audio.out(g, { far: 0.45 }); o.start(t); o.stop(t + 1.05); setTimeout(() => E.audio.bird('calf', { far: 0.3, pan: 0.2 }), 700); }
+  // the reunion: the matriarch trumpets, the herd answers one after another, the calf squeaks back, and it all settles into a rumble
+  function trumpet() { if (!E.AC) return; const A = E.audio;
+    A.elephant('trumpet', { vol: 1.5, far: 0.35, pan: -0.15 }); A.elephant('trumpet', { vol: 1.0, far: 0.5, pan: 0.35, delay: 0.75 }); A.elephant('snort', { vol: 1.1, far: 0.4, pan: 0.5, delay: 1.3 }); A.elephant('trumpet', { vol: 0.8, far: 0.6, pan: -0.45, delay: 1.9 });
+    setTimeout(() => A.bird('calf', { far: 0.3, pan: 0.2, vol: 1.3, bus: 'sfx' }), 900); A.elephant('rumble', { vol: 1.4, far: 0.4, delay: 2.8 }); A.elephant('rumble', { vol: 1.0, far: 0.5, pan: 0.3, delay: 3.8 }); A.elephant('snort', { vol: 0.8, far: 0.55, pan: -0.3, delay: 5.2 }); }
   function tapHidden(k) { const r = L.tap(S, k); if (!r) return; E.progress();
     if (r === 'leaf') { leaf.visible = false; E.sfx.found(4); label('<em>Puskola</em> · an ola-leaf page, left in the ranger’s tent'); E.refresh(); return; }
     if (r === 'branch') { const b = branches[+k[1]], from = b.position.clone(); E.sfx.found(S.branches); E.sfx.flutter(4);
@@ -460,8 +462,8 @@ function build(E) {
   function hops(from) { const p = L.findPath({ ...S, calf: null }, from, 'G_calf'); return p ? p.length - 1 : 9; }
   listenBtn.onclick = (ev) => { ev.stopPropagation(); if (S.calf) return; const h = hops(S.player); const bars = h <= 1 ? 3 : h <= 3 ? 2 : 1;
     listenBtn.querySelectorAll('i').forEach((b, k) => b.classList.toggle('lit', k < bars));
-    if (E.AC) { const AC = E.AC; const t0 = AC.currentTime; const vol = [0, 0.007, 0.017, 0.035][bars]; for (let n = 0; n < 2; n++) { const o = AC.createOscillator(), g = AC.createGain(); o.type = 'sawtooth'; const t = t0 + n * 0.6; o.frequency.setValueAtTime(700, t); o.frequency.linearRampToValueAtTime(900, t + 0.2); o.frequency.linearRampToValueAtTime(760, t + 0.45);
-      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.05); g.gain.linearRampToValueAtTime(0, t + 0.5); const f = AC.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 900 + bars * 400; o.connect(f).connect(g); E.audio.out(g, { far: [0, 0.7, 0.45, 0.2][bars] }); o.start(t); o.stop(t + 0.55); } }
+    // the calf's squeal: fainter and more distant the further away it is
+    if (E.AC) for (let n = 0; n < 2; n++) E.audio.elephant('calf', { vol: [0, 0.3, 0.75, 1.5][bars], far: [0, 0.85, 0.55, 0.2][bars], delay: n * 0.75 });
     label(['', 'A faint, faraway squeal… the calf is a long way off.', 'A clearer squeal. You’re getting closer.', 'A loud, frightened squeal, very close now!'][bars], 3000); };
   const actionFor = { calfFind: () => !S.calf && S.branches >= 3 && 'place', herd1: () => S.calf === 'follow' && 'place', herd2: () => S.calf === 'follow' && 'place', herd3: () => S.calf === 'follow' && 'place', herd4: () => S.calf === 'follow' && 'place', herd5: () => S.calf === 'follow' && 'place' };
   function unreachable(what) { if (what === 'calfFind') label('Follow the trail to find the calf. Read the signs at each crossroads.', 3600); }

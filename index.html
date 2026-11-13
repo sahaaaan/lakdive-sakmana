@@ -2,19 +2,24 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Lakdive Sakmana — a stroll through Sri Lanka</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
 <style>
-  :root{--ink:#4a3b35;--ink-soft:#7b6a61;--card:rgba(255,250,244,.86);--accent:#b9664c;--line:rgba(122,96,82,.18)}
+  :root{--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);--ink:#4a3b35;--ink-soft:#7b6a61;--card:rgba(255,250,244,.86);--accent:#b9664c;--line:rgba(122,96,82,.18)}
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;overflow:hidden;background:linear-gradient(#cfe6ee,#f3ead8);font-family:'Nunito Sans',system-ui,sans-serif;color:var(--ink)}
   canvas#map{position:fixed;inset:0;width:100%;height:100%;display:block}
-  .card{background:var(--card);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:18px;box-shadow:0 10px 30px rgba(74,59,53,.12)}
-  #home{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:28px 16px 22px;pointer-events:none;transition:opacity .6s}
-  #home.hide{opacity:0}
+  .card{background:var(--card);backdrop-filter:blur(14px) saturate(1.15);-webkit-backdrop-filter:blur(14px) saturate(1.15);border:1px solid var(--line);border-radius:18px;box-shadow:0 10px 34px rgba(74,59,53,.12),0 1px 2px rgba(74,59,53,.06),inset 0 1px 0 rgba(255,255,255,.55)}
+  #home{position:fixed;inset:var(--st) var(--sr) var(--sb) var(--sl);display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:28px 16px 22px;pointer-events:none;transition:opacity .6s ease, transform .8s cubic-bezier(.2,.8,.3,1)}
+  #home.hide{opacity:0} #home.hide #foot{transform:translateY(16px)} #foot{transition:transform .8s cubic-bezier(.2,.8,.3,1)}
+  #probe{position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;padding:var(--st) var(--sr) var(--sb) var(--sl)}
+  #trip,#skip,#snd{margin:var(--st) var(--sr) var(--sb) var(--sl)}
+  .ch:active:not(.locked){transform:scale(.97)} #startOver,#leaves button{transition:background .2s, color .2s, transform .15s} #startOver:active,#leaves button:active{transform:scale(.95)}
+  @keyframes cardIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}} #chapters.first .ch{animation:cardIn .7s cubic-bezier(.2,.8,.3,1) both} #chapters.first .ch:nth-child(2){animation-delay:.07s} #chapters.first .ch:nth-child(3){animation-delay:.14s} #chapters.first .ch:nth-child(4){animation-delay:.21s} #chapters.first .ch:nth-child(5){animation-delay:.28s} #chapters.first .ch:nth-child(6){animation-delay:.35s}
+  @media (prefers-reduced-motion:reduce){ *{animation-duration:.01s!important;transition-duration:.01s!important} }
   #home .head{text-align:center;pointer-events:none}
   #home h1{font-family:Fraunces,serif;font-weight:700;font-size:clamp(38px,6.4vw,76px);margin:0;letter-spacing:.02em;color:#5a4038;text-shadow:0 2px 0 rgba(255,255,255,.6)}
   #home .sub{font-size:15px;letter-spacing:.24em;text-transform:uppercase;color:var(--ink-soft);margin-top:2px}
@@ -37,9 +42,9 @@
   #trip .t{font-family:Fraunces,serif;font-size:24px;font-weight:700;margin:2px 0}
   #trip .r{font-size:14px}
   #skip{position:fixed;right:16px;bottom:16px;padding:10px 16px;border:0;font:inherit;font-weight:700;color:var(--ink);cursor:pointer;display:none}
-  #lvl{position:fixed;inset:0;width:100%;height:100%;border:0;background:#f3ead8;opacity:0;pointer-events:none;transition:opacity .7s}
+  #lvl{position:fixed;inset:0;width:100%;height:100%;border:0;background:#f3ead8;opacity:0;pointer-events:none;transition:opacity .9s cubic-bezier(.4,0,.2,1)}
   #lvl.on{opacity:1;pointer-events:auto}
-  #fade{position:fixed;inset:0;background:#f6efe2;opacity:0;pointer-events:none;transition:opacity .7s}
+  #fade{position:fixed;inset:0;background:#f6efe2;opacity:0;pointer-events:none;transition:opacity .7s cubic-bezier(.4,0,.2,1)}
   #fade.on{opacity:1}
   #end{position:fixed;inset:0;display:none;align-items:center;justify-content:center}
   #end .panel{padding:28px 30px;text-align:center;max-width:460px}
@@ -274,9 +279,14 @@ document.getElementById('skip').onclick = () => { if (journey) { journey.t = jou
 
 /* ---------------- the level frame ---------------- */
 const frame = document.getElementById('lvl'), fade = document.getElementById('fade');
+// a framed page can't see the phone's notch and home-bar margins, so the map hands them to the chapter
+document.body.insertAdjacentHTML('beforeend', '<div id="probe"></div>');
+function passInsets() { try { const cs = getComputedStyle(document.getElementById('probe')), st = frame.contentDocument.documentElement.style;
+  st.setProperty('--st', cs.paddingTop); st.setProperty('--sr', cs.paddingRight); st.setProperty('--sb', cs.paddingBottom); st.setProperty('--sl', cs.paddingLeft); } catch (e) {} }
+addEventListener('resize', () => setTimeout(passInsets, 60));
 let playing = -1, openToken = 0;
 function openLevel(i) { playing = i; prog.inLevel = CH[i].id; save(); SND.setAway(true); document.body.classList.add('inlevel'); fade.classList.add('on'); const tok = ++openToken;
-  setTimeout(() => { if (tok !== openToken) return; frame.src = `levels/${CH[i].id}/index.html?autostart=0&done=${isDone(i) ? 1 : 0}`; frame.onload = () => { if (tok !== openToken) return; frame.classList.add('on'); fade.classList.remove('on'); document.getElementById('trip').classList.remove('on'); }; }, 700); }
+  setTimeout(() => { if (tok !== openToken) return; frame.src = `levels/${CH[i].id}/index.html?autostart=0&done=${isDone(i) ? 1 : 0}`; frame.onload = () => { if (tok !== openToken) return; passInsets(); frame.classList.add('on'); fade.classList.remove('on'); document.getElementById('trip').classList.remove('on'); }; }, 700); }
 function closeLevel(then) { openToken++; delete prog.inLevel; save(); fade.classList.add('on'); setTimeout(() => { frame.classList.remove('on'); frame.src = 'about:blank'; fade.classList.remove('on'); playing = -1; document.body.classList.remove('inlevel'); SND.reload(); SND.setAway(false); then && then(); }, 700); }
 addEventListener('message', (e) => { const d = e.data || {}; if (!d.pahana) return; const i = CH.findIndex((c) => c.n === d.chapter); if (i < 0) return;
   if (d.pahana === 'won') { if (!prog.done.includes(CH[i].id)) { prog.done.push(CH[i].id); save(); } renderHome(); }
@@ -335,7 +345,7 @@ function tick() {
     wantLook = p.clone(); wantLook.y = 0; wantPos = wantLook.clone().add(new THREE.Vector3(0, 26, 22));
     if (u >= 1) endJourney(); }
   else { const fc = here < 0 ? P(COLOMBO) : P(CH[here].at); const slow = Math.sin(t * 0.08) * 6; wantLook = new THREE.Vector3(slow * 0.3, 0, 1.5).lerp(fc, 0.25); wantPos = wantLook.clone().add(new THREE.Vector3(Math.sin(t * 0.05) * 8, 66, 50)); }
-  camPos.lerp(wantPos, Math.min(1, dt * 1.6)); camLook.lerp(wantLook, Math.min(1, dt * 2.2)); camera.position.copy(camPos); camera.lookAt(camLook);
+  camPos.lerp(wantPos, 1 - Math.exp(-dt * 1.8)); camLook.lerp(wantLook, 1 - Math.exp(-dt * 1.8)); camera.position.copy(camPos); camera.lookAt(camLook);
   pins.forEach((pn, k) => { const i = k; const dim = i >= 0 && !unlocked(i); pn.g.visible = true; pn.lab.material.opacity = dim ? 0.45 : 1; pn.ring.material.opacity *= 0.985; pn.ring.scale.setScalar(1 + Math.sin(t * 3) * 0.08);
     if (!journey && playing < 0 && i >= 0 && unlocked(i) && !isDone(i)) pn.ring.material.opacity = 0.5 + Math.sin(t * 3) * 0.3; });
   clouds.forEach((c, k) => { const a = Math.atan2(c.position.z, c.position.x) + c.userData.sp * dt * 0.01; const r = Math.hypot(c.position.x, c.position.z); c.position.x = Math.cos(a) * r; c.position.z = Math.sin(a) * r; });
