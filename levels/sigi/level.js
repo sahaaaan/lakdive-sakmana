@@ -467,6 +467,7 @@ function build(E) {
       if (!S.cloth) return { obj: S.player === 'S_base' || S.player === 'S_mid' ? joinGlow[0] : clothKit, words: ['Turn the view a quarter at a time. In one view the top of the lower flight seems to touch the upper landing; then walk across.'] };
       if (/POCKET|P_end|S_mid2/.test(S.player)) return { obj: joinGlow[1], words: ['From the west end of the pocket, turn the view until the ledge seems to touch the gallery below.'] };
       const next = S.lit.findIndex((l) => !l);
+      if (next < 0 || S.gate2) return { obj: gate2Beacon, words: ['All three maidens are lit and the gallery gate is open. Tap the glowing gate at the end of the gallery, then the lantern-lit steps, to climb to the Lion Rock.'] };
       const words = ['A boulder now blocks the beam’s straight run west. The east maiden: the first mirror can still send the light straight up to her.', 'The middle maiden: send the beam down onto the wall, along to the second polished panel and up the middle column. The mirror in that column must lie flat.', 'The west maiden is the long way: wall → up the middle column → that mirror turns it west → the next mirror sends it down → the last two panels → up.'][next];
       // point at the next mirror to turn: the fewest turns from the mirrors as they are now to light this maiden
       if (next >= 0 && (next === 0 || S.pol.every(Boolean))) { let best = null;

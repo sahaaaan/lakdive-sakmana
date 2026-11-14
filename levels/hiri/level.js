@@ -62,6 +62,8 @@ function build(E) {
       seg.position.copy(p).lerp(q, 0.5); seg.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), q.clone().sub(p).normalize()); g.add(seg); p = q;
     }
     const crown = new THREE.Group(); crown.position.copy(p); g.add(crown); g.userData.crown = crown;
+    { const hit = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, p.length(), 8), new THREE.MeshBasicMaterial({ visible: false })); // a fat invisible trunk, so a tap anywhere on the palm counts
+      hit.position.copy(p).multiplyScalar(0.5); hit.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), p.clone().normalize()); g.add(hit); }
     for (let i = 0; i < 8; i++) {
       const fr = mesh(new THREE.ConeGeometry(0.32, 2.1, 4, 1), mat(i % 2 ? PAL.palm : PAL.palmDark)); fr.scale.set(1, 1, 0.25);
       fr.position.y = 0.05; fr.rotation.set(0, i / 8 * Math.PI * 2 + seed, 0); const arm = new THREE.Group(); arm.rotation.y = i / 8 * Math.PI * 2 + seed; crown.add(arm);
@@ -553,7 +555,7 @@ function build(E) {
         if (S.floats === 0 && !S.hasPaddle && !metFisher) return { obj: fisher, words: ['The fisherman by the blue canoe needs help. Tap him.'] };
         const vis = left.filter((i) => (i !== 2 || S.palm1) && (i !== 3 || S.tideLow));
         if (vis.length) return { obj: f(vis[0]), words: ['Orange net floats hide around the bay: at the café, behind the canoe, in a palm and in the rock pool. Turn the view.'] };
-        if (!S.palm1) return { obj: palm1, words: ['Something orange is tangled in a palm crown. Tap the palm to shake it.'] };
+        if (!S.palm1) return { obj: palm1.userData.crown, words: ['Something orange is tangled in a palm crown. Tap the palm to shake it.'] };
         if (!S.tideLow && (!S.hasPaddle || left.includes(3))) return { obj: dial, words: ['The moon-stone dial on the rocks controls the tide. Turn it to low tide.'] };
         if (!S.hasPaddle) return { obj: paddle, words: ['The paddle is wedged in the rock pool out on the reef.'] };
         return { obj: fisher, words: ['Take the paddle and floats back to the fisherman.'] };
@@ -568,7 +570,7 @@ function build(E) {
       const vis = [0, 1, 2, 3].filter((i) => !S.bulbTaken[i] && (i !== 3 || S.palm2));
       if (S.bulbs >= 4) return { obj: owner, words: ['Give the bulbs to the café owner.'] };
       if (vis.length) return { obj: bulbs[vis[0]], words: ['Bulbs hide along the street: on the surfboard fence, a scooter seat, in a shop window… and up a palm.'] };
-      return { obj: palm2, words: ['Something glints in the palm by the road. Give it a shake.'] };
+      return { obj: palm2.userData.crown, words: ['Something glints in the palm by the road. Give it a shake.'] };
     }
     if (!L.wired(S)) { const i = S.J.findIndex((v, k) => v !== L.J_GOAL[k]);
       if (i === 0 && !S.awning) return { obj: plate, words: ['The high junction box needs a way up. Try standing on the board on the café balcony.'] };

@@ -362,7 +362,12 @@ function build(E) {
   function surfaceTarget(kind, point) {
     if (kind === 'jeep') { if (L.areaOf(S.player) === 2) { if (S.calf !== 'follow') window.__game.interactAt('calf'); return null; } if (S.player !== 'R_far') return 'R_far'; if (!S.drank) { label('“The calf is too weak for the walk. It needs a drink first, back at the rock pool.”', 4200); bubble(ranger2, 'drop', { offset: 2.1 }); E.bump(); return null; } if (S.calf !== 'follow') { label('“Bring the calf! We can’t leave it here on its own.” Tap the calf to call it.', 4200); bubble(ranger2, 'calf', { offset: 2.1 }); E.bump(); return null; } return 'D'; }
     const ids = Object.keys(L.NODES).filter((id) => (kind === 'a2' ? L.areaOf(id) === 2 : L.areaOf(id) === 1));
-    let best = null, bd = 1e9; for (const id of ids) { const n = P(id); const d = Math.hypot(n.x - point.x, n.z - point.z); if (d < bd) { bd = d; best = id; } } return best;
+    let best = null, bd = 1e9; for (const id of ids) { const n = P(id); const d = Math.hypot(n.x - point.x, n.z - point.z); if (d < bd) { bd = d; best = id; } }
+    // a tap just outside her crossroads, along one of the trails (on its prints, say): set off down that trail
+    if (best === S.player && bd > 0.3) { const here = P(S.player), dx = point.x - here.x, dz = point.z - here.z, dl = Math.hypot(dx, dz);
+      let pick = null, pc = Math.cos(0.6); for (const { to } of L.adjacency(S).get(S.player) || []) { const n = P(to), nx = n.x - here.x, nz = n.z - here.z, c = (dx * nx + dz * nz) / (dl * Math.hypot(nx, nz) || 1); if (c > pc) { pc = c; pick = to; } }
+      if (pick) return pick; }
+    return best;
   }
   function edgePoints(e, from, to) {
     if (e.kind === 'bridge') { const a = P(from), b = P(to); const out = []; for (let i = 1; i <= 12; i++) { const p = a.clone().lerp(b, i / 12); p.y = 0.1; out.push(p); } return out; }
@@ -483,7 +488,7 @@ function build(E) {
       return { obj: obj || clue.children[0], words: [i >= 0 ? 'Look at the prints leaving this crossroads: small, alone, toes pointing away.' : 'Head back to the crossroads where the small prints were.'] };
     }
     if (L.areaOf(S.player) === 1 && S.player !== 'R_far') {
-      if (!L.bridgeDown(S)) return { obj: lever, words: ['The lever stone by the river needs real weight. Lead the calf onto it and tell it to stay (tap the calf).'] };
+      if (!L.bridgeDown(S)) return S.player === 'B_bank' && S.calf === 'follow' ? { obj: calf, words: ['You’re on the lever stone. Now tap the calf to tell it to stay here.'] } : { obj: lever, words: ['The lever stone by the river needs real weight. Lead the calf onto it and tell it to stay (tap the calf).'] };
       return { obj: bridge, words: ['The bridge is down. Cross to the ranger.'] };
     }
     if (S.player === 'R_far' && !S.drank) return S.calf === 'R_far' ? { obj: bridge, words: ['The calf’s weight holds this bridge down too. Cross back, then call the calf over and take it to the rock pool.'] } : { obj: calf, words: ['The calf must drink before the long drive. Tell it to stay on the stone here (tap the calf): the bridge comes down, so you can go back to the rock pool.'] };
@@ -498,8 +503,10 @@ function build(E) {
   function focus() { let f = L.areaOf(S.player) === 2 ? 1 : 0; if (riding) { const d = roadB.clone().sub(roadA); f = THREE.MathUtils.clamp(girl.position.clone().sub(roadA).dot(d) / d.lengthSq(), 0, 1); }
     if (S.player === 'R_far' && !riding) f = 0.15; const k = f * f * (3 - 2 * f);
     // up close with a young elephant (ours or not): come right in, so the ears and trunk can be compared
-    const young = !riding && { G_calf: calf, G_kid: deadEnd.G_kid[0], G_kid2: deadEnd.G_kid2[0], G_mom: deadEnd.G_mom[0] }[S.player];
-    if (young && young.visible !== false) { const p = young.getWorldPosition(new THREE.Vector3()).lerp(girl.position, 0.35); return { target: p.add(new THREE.Vector3(0, 0.6, 0)), zoom: 2.6, k, pz: 1.9 }; }
+    const young = !riding && { G_kid: deadEnd.G_kid[0], G_kid2: deadEnd.G_kid2[0], G_mom: deadEnd.G_mom[0] }[S.player];
+    if (young && young.visible !== false) { // close enough to see the ears, while the crossroads she came from stays in the frame
+      const back = (L.adjacency(S).get(S.player) || [])[0], yp = young.getWorldPosition(new THREE.Vector3());
+      const p = back ? yp.clone().lerp(P(back.to), 0.38) : yp.clone().lerp(girl.position, 0.35); return { target: p.add(new THREE.Vector3(0, 0.6, 0)), zoom: 1.75, k, pz: 1.2 }; }
     return { target: new THREE.Vector3(1.5, 1.2, -1).lerp(A2.clone().add(new THREE.Vector3(0.6, 1.2, -1.8)), k), zoom: 1, k, pz: 1.12 - 0.14 * k }; }
   const skyA = { sun: new THREE.Color(0xfff2dc), hemi: new THREE.Color(0xfff3e8), fog: new THREE.Color(0xf3e6cc) };
   const skyB = { sun: new THREE.Color(0xffb070), hemi: new THREE.Color(0xf0c8a0), fog: new THREE.Color(0xf0c8a0) };

@@ -380,7 +380,7 @@ function build(E) {
   /* ================= VIEW SYNC & STORY ================= */
   const nodePos = (id) => P(id);
   function surfaceTarget(kind, point) {
-    if (kind === 'lorry') { if (S.player !== 'F_yard') return 'F_yard'; if (!S.chests) { label('The lorry won’t leave without the sealed auction chests.', 3200); E.bump(); return null; } return 'L_drop'; }
+    if (kind === 'lorry') { if (S.player !== 'F_yard') return 'F_yard'; if (!S.chests) { if (S.made && L.blendTotal(S.blend) === 9) { window.__game.interactAt('seal'); return null; } label('The lorry won’t leave without the sealed auction chests.', 3200); E.bump(); return null; } return 'L_drop'; } // the lorry stands in front of the seal from some views: with nine chests filled, a tap on it seals them
     const ids = Object.keys(L.NODES).filter((id) => (kind === 'a2' ? L.areaOf(id) === 2 : L.areaOf(id) === 1));
     let best = null, bd = 1e9; for (const id of ids) { const n = P(id); const d = Math.hypot(n.x - point.x, n.z - point.z) + Math.abs(n.y - point.y) * 0.8; if (d < bd) { bd = d; best = id; } } return best;
   }
@@ -503,10 +503,18 @@ function build(E) {
       if (!S.weighed) return { obj: scale, words: ['Basket 2 kg + sacks must make 20 kg. Which sacks add up to 18?'] };
       if (!S.hooked) return { obj: hookPost, words: ['Hang the sack on the ropeway hook by the tower.'] };
       if (!S.sackDown) return { obj: cw, words: ['Stand on the counterweight platform beside the tower.'] };
-      if (!L.powered(S)) { const f = L.flows(S.G); return { obj: gates[0], words: [`The wheel needs 3 and the nursery 1, from 4 in total. Try splitting the water at gate 1, then splitting again on one side. (Now: wheel ${f.wheel}, nursery ${f.nursery})`] }; }
+      if (!L.powered(S)) { const f = L.flows(S.G);
+        // point at the next gate that needs turning, on the shortest way to a working setting (not always gate 1)
+        let best = null, bt = 99; for (let a = 0; a < L.GATE_MODES[0]; a++) for (let b = 0; b < L.GATE_MODES[1]; b++) for (let c = 0; c < L.GATE_MODES[2]; c++) { const G = [a, b, c]; if (!L.powered({ G })) continue;
+          const taps = G.reduce((n, v, i) => n + (v - S.G[i] + L.GATE_MODES[i]) % L.GATE_MODES[i], 0); if (taps < bt) { bt = taps; best = G; } }
+        const gi = best ? best.findIndex((v, i) => v !== S.G[i]) : 0;
+        return { obj: gates[Math.max(0, gi)], words: [`The wheel needs 3 and the nursery 1, from 4 in total. Try splitting the water at gate 1, then splitting again on one side. (Now: wheel ${f.wheel}, nursery ${f.nursery})`] }; }
       if (!L.orderRight(S)) { const i = S.slots.findIndex((v, k) => v !== k); return { obj: stations[i], words: ['Tea is made: wither → roll → oxidise → dry → sort. Tap a machine to change it.'] }; }
       if (!S.made) return { obj: runLever, words: ['Pull the start lever.'] };
-      if (!S.chests) return { obj: L.blendTotal(S.blend) === 9 ? stamp : bins.B, words: ['9 chests, BOP twice FBOP, no Fannings: if FBOP is f, BOP is 2f, so 3f = 9…'] };
+      if (!S.chests) { const b = S.blend, words = ['9 chests, BOP twice FBOP, no Fannings: if FBOP is f, BOP is 2f, so 3f = 9…'];
+        if (L.blendOk(b)) return { obj: stamp, words: ['That’s the broker’s order. Seal the chests.'] };
+        if (b.B > 6 || b.F > 3 || b.D > 0 || b.N > 0) return { obj: clearLever, words: ['That mix can’t make the order. Pull the grey lever to empty the chests, then try again.', ...words] }; // 9 with BOP = 2×FBOP and no Fannings only works as 6 + 3
+        return { obj: b.B < 6 ? bins.B : bins.F, words }; }
       return { obj: lorry, words: ['Tap the lorry to ride to the halt.'] };
     }
     if (!S.gateOpen) return { obj: board, words: ['The red local leaves Ella at 3:10 and takes 12 minutes to the bridge.'] };
